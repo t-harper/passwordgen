@@ -4,6 +4,6 @@ import App from './App';
 
 test('renders password generator app', () => {
   render(<App />);
-  const titleElement = screen.getByText(/Password Generator/i);
+  const titleElement = screen.getByText(/Secure Password Generator/i);
   expect(titleElement).toBeInTheDocument();
 });

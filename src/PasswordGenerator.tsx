@@ -42,6 +42,9 @@ const PasswordGenerator: React.FC = () => {
 
   const [options, setOptions] = useState<ExtendedOptions>(loadSettings());
   const [passwords, setPasswords] = useState<string[]>([]);
+  const [showCookieBanner, setShowCookieBanner] = useState<boolean>(() => {
+    return !localStorage.getItem('cookieConsent');
+  });
 
   useEffect(() => {
     if (options.saveSettings) {
@@ -166,7 +169,68 @@ const PasswordGenerator: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto', padding: '16px', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
-      <h1 style={{ textAlign: 'center', color: '#1f2937', marginBottom: '20px', fontSize: '24px' }}>Password Generator</h1>
+      {showCookieBanner && (
+        <div style={{
+          position: 'fixed',
+          bottom: '0',
+          left: '0',
+          right: '0',
+          backgroundColor: '#1f2937',
+          color: 'white',
+          padding: '16px',
+          boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}>
+          <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
+            🍪 This website uses localStorage to save your preferences when you enable "Save Settings". 
+            No tracking or analytics cookies are used.
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => {
+                localStorage.setItem('cookieConsent', 'accepted');
+                setShowCookieBanner(false);
+              }}
+              style={{
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+              }}
+            >
+              Accept
+            </button>
+            <button
+              onClick={() => {
+                localStorage.setItem('cookieConsent', 'declined');
+                setShowCookieBanner(false);
+              }}
+              style={{
+                backgroundColor: 'transparent',
+                color: 'white',
+                border: '1px solid #6b7280',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px',
+              }}
+            >
+              Decline
+            </button>
+          </div>
+        </div>
+      )}
+      
+      <h1 style={{ textAlign: 'center', color: '#1f2937', marginBottom: '20px', fontSize: '24px' }}>Secure Password Generator</h1>
       
       <div style={sectionStyle}>
         <h3 style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Configuration</h3>

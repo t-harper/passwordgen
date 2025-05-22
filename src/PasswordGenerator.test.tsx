@@ -19,7 +19,7 @@ describe('PasswordGenerator', () => {
   test('renders password generator with default settings', () => {
     render(<PasswordGenerator />);
     
-    expect(screen.getByText('Password Generator')).toBeInTheDocument();
+    expect(screen.getByText('Secure Password Generator')).toBeInTheDocument();
     expect(screen.getByDisplayValue('25')).toBeInTheDocument(); // Default length
     expect(screen.getByDisplayValue('!@#$%^&*()_+-=[]{}|;:,.<>?')).toBeInTheDocument(); // Default symbols
   });
