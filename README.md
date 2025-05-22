@@ -54,10 +54,10 @@ npm start
 - **Custom Symbols**: Define your own special characters
 
 ### Security Options
-- **Begin with Letter**: Ensure passwords start with a letter (a-z or A-Z)
-- **Exclude Similar Characters**: Remove confusing characters like 0, O, 1, l, I, |
-- **No Duplicate Characters**: Each character appears only once
-- **Remove Sequential Characters**: Avoid patterns like 'abc', '123', or 'xyz'
+- **Begin with Letter**: Ensure passwords start with a letter (a-z or A-Z) *(default: on)*
+- **Exclude Similar Characters**: Remove confusing characters like 0, O, 1, l, I, | *(default: on)*
+- **No Duplicate Characters**: Each character appears only once *(default: on)*
+- **Remove Sequential Characters**: Avoid patterns like 'abc', '123', or 'xyz' *(default: on)*
 
 ### Convenience Features
 - **Save Settings**: Remember your preferences using browser storage
