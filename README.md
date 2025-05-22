@@ -24,8 +24,8 @@ A secure, client-side password generator built with React and TypeScript. Genera
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/password-generator.git
-cd password-generator
+git clone https://github.com/t-harper/passwordgen.git
+cd passwordgen
 ```
 
 2. Install dependencies:
@@ -144,7 +144,7 @@ The password generator uses a cryptographically secure approach:
 
 If you encounter any issues or have questions:
 
-1. Check the [Issues](https://github.com/yourusername/password-generator/issues) page
+1. Check the [Issues](https://github.com/t-harper/passwordgen/issues) page
 2. Create a new issue if your problem isn't already reported
 3. Provide detailed information about the problem and your environment
 
