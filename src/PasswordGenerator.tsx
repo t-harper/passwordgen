@@ -169,6 +169,13 @@ const PasswordGenerator: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto', padding: '16px', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+      <header>
+        <h1 style={{ textAlign: 'center', color: '#1f2937', marginBottom: '8px', fontSize: '2rem' }}>Secure Password Generator</h1>
+        <p style={{ textAlign: 'center', fontSize: '1rem', color: '#6b7280', marginBottom: '24px' }}>
+          Generate strong, secure passwords instantly. All processing happens in your browser - 
+          your passwords never leave your device.
+        </p>
+      </header>
       {showCookieBanner && (
         <div style={{
           position: 'fixed',
@@ -230,8 +237,7 @@ const PasswordGenerator: React.FC = () => {
         </div>
       )}
       
-      <h1 style={{ textAlign: 'center', color: '#1f2937', marginBottom: '20px', fontSize: '24px' }}>Secure Password Generator</h1>
-      
+      <main>
       <div style={sectionStyle}>
         <h3 style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Configuration</h3>
         
@@ -474,31 +480,79 @@ const PasswordGenerator: React.FC = () => {
         All passwords are generated entirely on your device (client-side) and never transmitted to any server.
       </div>
 
-      <div style={{
-        marginTop: '8px',
-        padding: '12px',
-        backgroundColor: '#f0fdf4',
+      </main>
+      
+      <section style={{
+        marginTop: '48px',
+        padding: '24px',
+        backgroundColor: 'white',
         borderRadius: '8px',
-        border: '1px solid #bbf7d0',
-        fontSize: '12px',
-        color: '#15803d',
-        textAlign: 'center',
-        lineHeight: '1.5',
+        border: '1px solid #e5e7eb',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
       }}>
-        <strong>💻 Open Source:</strong> This site is open source! View the code and contribute on{' '}
-        <a 
-          href="https://github.com/t-harper/passwordgen"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            color: '#16a34a',
-            textDecoration: 'underline',
-            fontWeight: '500',
-          }}
-        >
-          GitHub
-        </a>.
-      </div>
+        <h2 style={{ fontSize: '1.25rem', marginBottom: '16px', color: '#1f2937' }}>Frequently Asked Questions</h2>
+        
+        <article style={{ marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: '#374151', fontWeight: '600' }}>How secure are the passwords generated?</h3>
+          <p style={{ color: '#6b7280', lineHeight: 1.5, fontSize: '0.875rem' }}>
+            Our password generator creates highly secure passwords using a combination of uppercase and lowercase letters, 
+            numbers, and special characters. All generation happens locally in your browser using JavaScript's Math.random() 
+            function, ensuring your passwords are never transmitted over the internet.
+          </p>
+        </article>
+        
+        <article style={{ marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: '#374151', fontWeight: '600' }}>What makes a strong password?</h3>
+          <p style={{ color: '#6b7280', lineHeight: 1.5, fontSize: '0.875rem' }}>
+            A strong password should be at least 12 characters long (we recommend 25+), include a mix of character types, 
+            avoid dictionary words and sequential patterns, and be unique for each account. Our generator handles all these 
+            requirements automatically.
+          </p>
+        </article>
+        
+        <article style={{ marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: '#374151', fontWeight: '600' }}>Can I customize the password generation?</h3>
+          <p style={{ color: '#6b7280', lineHeight: 1.5, fontSize: '0.875rem' }}>
+            Yes! You can adjust the length, choose which character types to include, exclude similar-looking characters, 
+            prevent duplicates, remove sequential patterns, and even define your own custom symbol set.
+          </p>
+        </article>
+        
+        <article>
+          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: '#374151', fontWeight: '600' }}>Is my data being tracked or stored?</h3>
+          <p style={{ color: '#6b7280', lineHeight: 1.5, fontSize: '0.875rem' }}>
+            No passwords or sensitive data are ever stored or transmitted. We use Google Analytics to understand site usage 
+            patterns, but this only tracks general visitor statistics, not any password-related information. Your settings 
+            are only saved locally in your browser if you explicitly choose to save them.
+          </p>
+        </article>
+      </section>
+      
+      <footer style={{
+        marginTop: '32px',
+        paddingTop: '16px',
+        borderTop: '1px solid #e5e7eb',
+        textAlign: 'center',
+        color: '#6b7280',
+        fontSize: '0.75rem'
+      }}>
+        <p>© 2025 Secure Password Generator by Travis Harper. All rights reserved.</p>
+        <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+          <a href="https://github.com/t-harper/passwordgen" 
+             style={{ color: '#3b82f6', textDecoration: 'none' }}
+             target="_blank" 
+             rel="noopener noreferrer">
+            View on GitHub
+          </a>
+          <span style={{ color: '#e5e7eb' }}>•</span>
+          <a href="https://buymeacoffee.com/travis.harper" 
+             style={{ color: '#3b82f6', textDecoration: 'none' }}
+             target="_blank" 
+             rel="noopener noreferrer">
+            🍺 Buy me a beer
+          </a>
+        </div>
+      </footer>
     </div>
   );
 };
