@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 
 interface PasswordOptions {
   length: number;
@@ -45,6 +45,9 @@ const PasswordGenerator: React.FC = () => {
   const [showCookieBanner, setShowCookieBanner] = useState<boolean>(() => {
     return !localStorage.getItem('cookieConsent');
   });
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const mainContentRef = useRef<HTMLDivElement>(null);
+  const generateButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (options.saveSettings) {
@@ -122,10 +125,24 @@ const PasswordGenerator: React.FC = () => {
   const generateMultiplePasswords = () => {
     const newPasswords = Array.from({ length: 5 }, () => generatePassword());
     setPasswords(newPasswords);
+    
+    // Focus management for screen readers
+    setTimeout(() => {
+      const passwordsSection = document.getElementById('passwords-heading');
+      if (passwordsSection) {
+        passwordsSection.focus();
+      }
+    }, 100);
   };
 
-  const copyToClipboard = (password: string) => {
-    navigator.clipboard.writeText(password);
+  const copyToClipboard = async (password: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(password);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy password:', err);
+    }
   };
 
   const inputStyle = {
@@ -134,6 +151,11 @@ const PasswordGenerator: React.FC = () => {
     borderRadius: '6px',
     fontSize: '14px',
     transition: 'border-color 0.2s ease',
+  };
+
+  const focusStyle = {
+    outline: '2px solid #2563eb',
+    outlineOffset: '2px',
   };
 
   const labelStyle = {
@@ -149,6 +171,14 @@ const PasswordGenerator: React.FC = () => {
     width: '16px',
     height: '16px',
     cursor: 'pointer',
+  };
+
+  const handleCheckboxFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    Object.assign(e.currentTarget.style, focusStyle);
+  };
+
+  const handleCheckboxBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.currentTarget.style.outline = 'none';
   };
 
   const sectionStyle = {
@@ -169,6 +199,38 @@ const PasswordGenerator: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto', padding: '16px', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+      <a
+        href="#main-content"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 'auto',
+          width: '1px',
+          height: '1px',
+          overflow: 'hidden',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.position = 'fixed';
+          e.currentTarget.style.top = '10px';
+          e.currentTarget.style.left = '10px';
+          e.currentTarget.style.width = 'auto';
+          e.currentTarget.style.height = 'auto';
+          e.currentTarget.style.padding = '8px 16px';
+          e.currentTarget.style.backgroundColor = '#1f2937';
+          e.currentTarget.style.color = 'white';
+          e.currentTarget.style.textDecoration = 'none';
+          e.currentTarget.style.borderRadius = '4px';
+          e.currentTarget.style.zIndex = '9999';
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.position = 'absolute';
+          e.currentTarget.style.left = '-9999px';
+          e.currentTarget.style.width = '1px';
+          e.currentTarget.style.height = '1px';
+        }}
+      >
+        Skip to main content
+      </a>
       <header>
         <h1 style={{ textAlign: 'center', color: '#1f2937', marginBottom: '8px', fontSize: '2rem' }}>Secure Password Generator</h1>
         <p style={{ textAlign: 'center', fontSize: '1rem', color: '#6b7280', marginBottom: '24px' }}>
@@ -177,7 +239,11 @@ const PasswordGenerator: React.FC = () => {
         </p>
       </header>
       {showCookieBanner && (
-        <div style={{
+        <div 
+          role="region"
+          aria-label="Cookie consent banner"
+          aria-live="polite"
+          style={{
           position: 'fixed',
           bottom: '0',
           left: '0',
@@ -203,6 +269,12 @@ const PasswordGenerator: React.FC = () => {
                 localStorage.setItem('cookieConsent', 'accepted');
                 setShowCookieBanner(false);
               }}
+              aria-label="Accept cookies"
+              onFocus={(e) => {
+                e.currentTarget.style.outline = '2px solid white';
+                e.currentTarget.style.outlineOffset = '2px';
+              }}
+              onBlur={(e) => e.currentTarget.style.outline = 'none'}
               style={{
                 backgroundColor: '#3b82f6',
                 color: 'white',
@@ -221,6 +293,12 @@ const PasswordGenerator: React.FC = () => {
                 localStorage.setItem('cookieConsent', 'declined');
                 setShowCookieBanner(false);
               }}
+              aria-label="Decline cookies"
+              onFocus={(e) => {
+                e.currentTarget.style.outline = '2px solid white';
+                e.currentTarget.style.outlineOffset = '2px';
+              }}
+              onBlur={(e) => e.currentTarget.style.outline = 'none'}
               style={{
                 backgroundColor: 'transparent',
                 color: 'white',
@@ -237,9 +315,9 @@ const PasswordGenerator: React.FC = () => {
         </div>
       )}
       
-      <main>
-      <div style={sectionStyle}>
-        <h3 style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Configuration</h3>
+      <main id="main-content" ref={mainContentRef} tabIndex={-1}>
+      <section style={sectionStyle} aria-labelledby="config-heading">
+        <h2 id="config-heading" style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Configuration</h2>
         
         <div style={{ display: 'grid', gap: '12px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -252,9 +330,13 @@ const PasswordGenerator: React.FC = () => {
                   max="100"
                   value={options.length}
                   onChange={(e) => setOptions(prev => ({ ...prev, length: parseInt(e.target.value) || 25 }))}
+                  aria-label="Password length"
+                  aria-describedby="length-help"
                   style={{ ...inputStyle, width: '80px' }}
+                  onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
+                  onBlur={(e) => e.currentTarget.style.outline = 'none'}
                 />
-                <div style={helpTextStyle}>Number of characters in the generated password (10-100)</div>
+                <div id="length-help" style={helpTextStyle}>Number of characters in the generated password (10-100)</div>
               </label>
             </div>
             <div>
@@ -264,11 +346,15 @@ const PasswordGenerator: React.FC = () => {
                     type="checkbox"
                     checked={options.saveSettings}
                     onChange={(e) => setOptions(prev => ({ ...prev, saveSettings: e.target.checked }))}
+                    aria-describedby="save-help"
+                    id="save-settings"
                     style={checkboxStyle}
+                    onFocus={handleCheckboxFocus}
+                    onBlur={handleCheckboxBlur}
                   />
-                  <span>Save Settings</span>
+                  <label htmlFor="save-settings" style={{ margin: 0, cursor: 'pointer' }}>Save Settings</label>
                 </div>
-                <div style={helpTextStyle}>Remember your preferences using browser storage</div>
+                <div id="save-help" style={helpTextStyle}>Remember your preferences using browser storage</div>
               </label>
             </div>
           </div>
@@ -280,17 +366,21 @@ const PasswordGenerator: React.FC = () => {
                 type="text"
                 value={options.customSymbols}
                 onChange={(e) => setOptions(prev => ({ ...prev, customSymbols: e.target.value }))}
+                aria-label="Custom symbols"
+                aria-describedby="symbols-help"
                 style={{ ...inputStyle, width: '100%', fontFamily: 'Monaco, Consolas, monospace' }}
                 placeholder="!@#$%^&*()_+-=[]{}|;:,.<>?"
+                onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
+                onBlur={(e) => e.currentTarget.style.outline = 'none'}
               />
-              <div style={helpTextStyle}>Specify which special characters to include in passwords</div>
+              <div id="symbols-help" style={helpTextStyle}>Specify which special characters to include in passwords</div>
             </label>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div style={sectionStyle}>
-        <h3 style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Character Options</h3>
+      <section style={sectionStyle} aria-labelledby="options-heading">
+        <h2 id="options-heading" style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Character Options</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
           <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -298,11 +388,15 @@ const PasswordGenerator: React.FC = () => {
                 type="checkbox"
                 checked={options.includeNumbers}
                 onChange={(e) => setOptions(prev => ({ ...prev, includeNumbers: e.target.checked }))}
+                id="include-numbers"
+                aria-describedby="numbers-help"
                 style={checkboxStyle}
+                onFocus={handleCheckboxFocus}
+                onBlur={handleCheckboxBlur}
               />
-              <span>Include Numbers (0-9)</span>
+              <label htmlFor="include-numbers" style={{ margin: 0, cursor: 'pointer' }}>Include Numbers (0-9)</label>
             </div>
-            <div style={helpTextStyle}>Add digits 0-9 to the character pool</div>
+            <div id="numbers-help" style={helpTextStyle}>Add digits 0-9 to the character pool</div>
           </label>
 
           <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
@@ -311,11 +405,15 @@ const PasswordGenerator: React.FC = () => {
                 type="checkbox"
                 checked={options.includeLowercase}
                 onChange={(e) => setOptions(prev => ({ ...prev, includeLowercase: e.target.checked }))}
+                id="include-lowercase"
+                aria-describedby="lowercase-help"
                 style={checkboxStyle}
+                onFocus={handleCheckboxFocus}
+                onBlur={handleCheckboxBlur}
               />
-              <span>Include Lowercase (a-z)</span>
+              <label htmlFor="include-lowercase" style={{ margin: 0, cursor: 'pointer' }}>Include Lowercase (a-z)</label>
             </div>
-            <div style={helpTextStyle}>Add lowercase letters a-z to the character pool</div>
+            <div id="lowercase-help" style={helpTextStyle}>Add lowercase letters a-z to the character pool</div>
           </label>
 
           <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
@@ -324,11 +422,15 @@ const PasswordGenerator: React.FC = () => {
                 type="checkbox"
                 checked={options.includeUppercase}
                 onChange={(e) => setOptions(prev => ({ ...prev, includeUppercase: e.target.checked }))}
+                id="include-uppercase"
+                aria-describedby="uppercase-help"
                 style={checkboxStyle}
+                onFocus={handleCheckboxFocus}
+                onBlur={handleCheckboxBlur}
               />
-              <span>Include Uppercase (A-Z)</span>
+              <label htmlFor="include-uppercase" style={{ margin: 0, cursor: 'pointer' }}>Include Uppercase (A-Z)</label>
             </div>
-            <div style={helpTextStyle}>Add uppercase letters A-Z to the character pool</div>
+            <div id="uppercase-help" style={helpTextStyle}>Add uppercase letters A-Z to the character pool</div>
           </label>
 
           <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
@@ -337,11 +439,15 @@ const PasswordGenerator: React.FC = () => {
                 type="checkbox"
                 checked={options.beginWithLetter}
                 onChange={(e) => setOptions(prev => ({ ...prev, beginWithLetter: e.target.checked }))}
+                id="begin-letter"
+                aria-describedby="begin-help"
                 style={checkboxStyle}
+                onFocus={handleCheckboxFocus}
+                onBlur={handleCheckboxBlur}
               />
-              <span>Begin with Letter</span>
+              <label htmlFor="begin-letter" style={{ margin: 0, cursor: 'pointer' }}>Begin with Letter</label>
             </div>
-            <div style={helpTextStyle}>Ensure password starts with a letter (a-z or A-Z)</div>
+            <div id="begin-help" style={helpTextStyle}>Ensure password starts with a letter (a-z or A-Z)</div>
           </label>
 
           <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
@@ -350,11 +456,15 @@ const PasswordGenerator: React.FC = () => {
                 type="checkbox"
                 checked={options.excludeSimilar}
                 onChange={(e) => setOptions(prev => ({ ...prev, excludeSimilar: e.target.checked }))}
+                id="exclude-similar"
+                aria-describedby="similar-help"
                 style={checkboxStyle}
+                onFocus={handleCheckboxFocus}
+                onBlur={handleCheckboxBlur}
               />
-              <span>Exclude Similar (0,O,1,l,I,|)</span>
+              <label htmlFor="exclude-similar" style={{ margin: 0, cursor: 'pointer' }}>Exclude Similar (0,O,1,l,I,|)</label>
             </div>
-            <div style={helpTextStyle}>Remove confusing characters that look alike</div>
+            <div id="similar-help" style={helpTextStyle}>Remove confusing characters that look alike</div>
           </label>
 
           <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
@@ -363,11 +473,15 @@ const PasswordGenerator: React.FC = () => {
                 type="checkbox"
                 checked={options.noDuplicates}
                 onChange={(e) => setOptions(prev => ({ ...prev, noDuplicates: e.target.checked }))}
+                id="no-duplicates"
+                aria-describedby="duplicates-help"
                 style={checkboxStyle}
+                onFocus={handleCheckboxFocus}
+                onBlur={handleCheckboxBlur}
               />
-              <span>No Duplicate Characters</span>
+              <label htmlFor="no-duplicates" style={{ margin: 0, cursor: 'pointer' }}>No Duplicate Characters</label>
             </div>
-            <div style={helpTextStyle}>Each character appears only once in the password</div>
+            <div id="duplicates-help" style={helpTextStyle}>Each character appears only once in the password</div>
           </label>
 
           <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
@@ -376,18 +490,31 @@ const PasswordGenerator: React.FC = () => {
                 type="checkbox"
                 checked={options.removeSequential}
                 onChange={(e) => setOptions(prev => ({ ...prev, removeSequential: e.target.checked }))}
+                id="remove-sequential"
+                aria-describedby="sequential-help"
                 style={checkboxStyle}
+                onFocus={handleCheckboxFocus}
+                onBlur={handleCheckboxBlur}
               />
-              <span>Remove Sequential Characters</span>
+              <label htmlFor="remove-sequential" style={{ margin: 0, cursor: 'pointer' }}>Remove Sequential Characters</label>
             </div>
-            <div style={helpTextStyle}>Avoid patterns like 'abc', '123', or 'xyz' in passwords</div>
+            <div id="sequential-help" style={helpTextStyle}>Avoid patterns like 'abc', '123', or 'xyz' in passwords</div>
           </label>
         </div>
-      </div>
+      </section>
 
       <div style={{ textAlign: 'center', marginBottom: '16px' }}>
         <button 
+          ref={generateButtonRef}
           onClick={generateMultiplePasswords}
+          aria-label="Generate 5 new passwords"
+          aria-describedby="generate-help"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              generateMultiplePasswords();
+            }
+          }}
           style={{
             backgroundColor: '#3b82f6',
             color: 'white',
@@ -402,18 +529,29 @@ const PasswordGenerator: React.FC = () => {
           }}
           onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
           onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+          onFocus={(e) => {
+            e.currentTarget.style.backgroundColor = '#2563eb';
+            e.currentTarget.style.outline = '2px solid #1e40af';
+            e.currentTarget.style.outlineOffset = '2px';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.backgroundColor = '#3b82f6';
+            e.currentTarget.style.outline = 'none';
+          }}
         >
           Generate 5 Passwords
         </button>
+        <div id="generate-help" className="sr-only" style={{ position: 'absolute', left: '-9999px' }}>Click to generate 5 unique passwords based on your selected options</div>
       </div>
 
       {passwords.length > 0 && (
-        <div style={sectionStyle}>
-          <h3 style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Generated Passwords</h3>
-          <div style={{ display: 'grid', gap: '8px' }}>
+        <section style={sectionStyle} aria-labelledby="passwords-heading" aria-live="polite" aria-atomic="true">
+          <h2 id="passwords-heading" tabIndex={-1} style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Generated Passwords</h2>
+          <div style={{ display: 'grid', gap: '8px' }} role="list">
             {passwords.map((password, index) => (
               <div 
                 key={index}
+                role="listitem"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -424,18 +562,23 @@ const PasswordGenerator: React.FC = () => {
                   gap: '8px',
                 }}
               >
-                <code style={{ 
-                  flexGrow: 1, 
-                  fontFamily: 'Monaco, Consolas, monospace', 
-                  fontSize: '14px',
-                  color: '#1e293b',
-                  backgroundColor: 'transparent',
-                  wordBreak: 'break-all',
-                }}>
+                <code 
+                  style={{ 
+                    flexGrow: 1, 
+                    fontFamily: 'Monaco, Consolas, monospace', 
+                    fontSize: '14px',
+                    color: '#1e293b',
+                    backgroundColor: 'transparent',
+                    wordBreak: 'break-all',
+                  }}
+                  aria-label={`Password ${index + 1}: ${password}`}
+                >
                   {password}
                 </code>
                 <button
-                  onClick={() => copyToClipboard(password)}
+                  onClick={() => copyToClipboard(password, index)}
+                  aria-label={`Copy password ${index + 1} to clipboard`}
+                  aria-live="polite"
                   style={{
                     padding: '6px 12px',
                     border: '1px solid #3b82f6',
@@ -456,16 +599,27 @@ const PasswordGenerator: React.FC = () => {
                     e.currentTarget.style.backgroundColor = 'white';
                     e.currentTarget.style.color = '#3b82f6';
                   }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.backgroundColor = '#3b82f6';
+                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.outline = '2px solid #1e40af';
+                    e.currentTarget.style.outlineOffset = '2px';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.backgroundColor = 'white';
+                    e.currentTarget.style.color = '#3b82f6';
+                    e.currentTarget.style.outline = 'none';
+                  }}
                 >
-                  Copy
+                  {copiedIndex === index ? 'Copied!' : 'Copy'}
                 </button>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
-      <div style={{
+      <div role="alert" aria-live="polite" style={{
         marginTop: '16px',
         padding: '12px',
         backgroundColor: '#f0f9ff',
@@ -482,7 +636,7 @@ const PasswordGenerator: React.FC = () => {
 
       </main>
       
-      <section style={{
+      <section aria-labelledby="faq-heading" style={{
         marginTop: '48px',
         padding: '24px',
         backgroundColor: 'white',
@@ -490,7 +644,7 @@ const PasswordGenerator: React.FC = () => {
         border: '1px solid #e5e7eb',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
       }}>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '16px', color: '#1f2937' }}>Frequently Asked Questions</h2>
+        <h2 id="faq-heading" style={{ fontSize: '1.25rem', marginBottom: '16px', color: '#1f2937' }}>Frequently Asked Questions</h2>
         
         <article style={{ marginBottom: '20px' }}>
           <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: '#374151', fontWeight: '600' }}>How secure are the passwords generated?</h3>
@@ -528,7 +682,7 @@ const PasswordGenerator: React.FC = () => {
         </article>
       </section>
       
-      <footer style={{
+      <footer role="contentinfo" style={{
         marginTop: '32px',
         paddingTop: '16px',
         borderTop: '1px solid #e5e7eb',
@@ -541,14 +695,16 @@ const PasswordGenerator: React.FC = () => {
           <a href="https://github.com/t-harper/passwordgen" 
              style={{ color: '#3b82f6', textDecoration: 'none' }}
              target="_blank" 
-             rel="noopener noreferrer">
+             rel="noopener noreferrer"
+             aria-label="View source code on GitHub">
             View on GitHub
           </a>
           <span style={{ color: '#e5e7eb' }}>•</span>
           <a href="https://buymeacoffee.com/travis.harper" 
              style={{ color: '#3b82f6', textDecoration: 'none' }}
              target="_blank" 
-             rel="noopener noreferrer">
+             rel="noopener noreferrer"
+             aria-label="Support the developer - Buy me a beer">
             🍺 Buy me a beer
           </a>
         </div>
