@@ -143,16 +143,17 @@ interface ExtendedOptions extends PasswordOptions {
 
 ### Data Handling
 - **NO server communication** for password generation
-- **NO analytics or tracking**
+- **Google Analytics** for site usage statistics only
 - **NO password storage** (passwords never leave the browser)
+- **NO password data tracked** (Google Analytics never sees generated passwords)
 - Settings stored in localStorage only when user consents
-- Cookie banner explains localStorage usage transparently
+- Cookie banner explains localStorage and analytics usage transparently
 
 ### GDPR Compliance
 - Cookie consent banner implemented
-- Clear explanation of data usage (localStorage for settings only)
+- Clear explanation of data usage (localStorage for settings and Google Analytics for usage)
 - User can decline data storage
-- No tracking or analytics cookies used
+- Google Analytics respects user consent choice
 
 ## Future Enhancement Ideas
 

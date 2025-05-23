@@ -187,8 +187,8 @@ const PasswordGenerator: React.FC = () => {
           gap: '12px',
         }}>
           <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
-            🍪 This website uses localStorage to save your preferences when you enable "Save Settings". 
-            No tracking or analytics cookies are used.
+            🍪 This website uses localStorage to save your preferences when you enable "Save Settings" 
+            and Google Analytics to understand site usage. No passwords or sensitive data are ever tracked.
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
@@ -472,6 +472,32 @@ const PasswordGenerator: React.FC = () => {
       }}>
         <strong>🔒 Privacy Notice:</strong> This application does not store any generated passwords. 
         All passwords are generated entirely on your device (client-side) and never transmitted to any server.
+      </div>
+
+      <div style={{
+        marginTop: '8px',
+        padding: '12px',
+        backgroundColor: '#f0fdf4',
+        borderRadius: '8px',
+        border: '1px solid #bbf7d0',
+        fontSize: '12px',
+        color: '#15803d',
+        textAlign: 'center',
+        lineHeight: '1.5',
+      }}>
+        <strong>💻 Open Source:</strong> This site is open source! View the code and contribute on{' '}
+        <a 
+          href="https://github.com/t-harper/passwordgen"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: '#16a34a',
+            textDecoration: 'underline',
+            fontWeight: '500',
+          }}
+        >
+          GitHub
+        </a>.
       </div>
     </div>
   );
