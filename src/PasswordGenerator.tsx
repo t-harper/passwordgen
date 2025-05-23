@@ -170,6 +170,15 @@ const PasswordGenerator: React.FC = () => {
       charset = charset.split('').filter(char => !similarChars.includes(char)).join('');
     }
 
+    // Remove duplicates from charset to get unique characters
+    const uniqueChars = Array.from(new Set(charset.split('')));
+    const uniqueCharset = uniqueChars.join('');
+
+    // If noDuplicates is enabled and password length exceeds available unique characters,
+    // cap the password length to the number of unique characters available
+    const maxPossibleLength = options.noDuplicates ? uniqueChars.length : validLength;
+    const effectiveLength = Math.min(validLength, maxPossibleLength);
+
     let password = '';
     const usedChars = new Set<string>();
 
@@ -192,12 +201,18 @@ const PasswordGenerator: React.FC = () => {
       }
     }
 
-    while (password.length < validLength) {
-      let availableChars = charset;
+    // Add safety counter to prevent infinite loops
+    let attempts = 0;
+    const maxAttempts = effectiveLength * 50; // Allow reasonable number of attempts for sequential checking
+
+    while (password.length < effectiveLength && attempts < maxAttempts) {
+      attempts++;
+      
+      let availableChars = uniqueCharset;
       
       if (options.noDuplicates) {
-        availableChars = charset.split('').filter(char => !usedChars.has(char)).join('');
-        if (!availableChars) break;
+        availableChars = uniqueCharset.split('').filter(char => !usedChars.has(char)).join('');
+        if (!availableChars) break; // No more unique characters available
       }
 
       const randomArray = new Uint32Array(1);
