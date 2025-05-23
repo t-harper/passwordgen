@@ -26,5 +26,35 @@
   "theme_color": "#3b82f6",
   "background_color": "#ffffff",
   "categories": ["security", "utilities"],
-  "orientation": "any"
+  "orientation": "any",
+  "shortcuts": [
+    {
+      "name": "Generate Password",
+      "short_name": "Generate",
+      "description": "Generate a new secure password",
+      "url": "/?generate=true",
+      "icons": [{ "src": "/logo192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Strong Password (30 chars)",
+      "short_name": "Strong",
+      "description": "Generate a 30-character password",
+      "url": "/?length=30&generate=true",
+      "icons": [{ "src": "/logo192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-desktop.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-mobile.png",
+      "type": "image/png",
+      "sizes": "375x667",
+      "form_factor": "narrow"
+    }
+  ]
 }

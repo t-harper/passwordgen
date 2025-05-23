@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
-      content="Secure, client-side password generator with customizable options. Generate strong passwords with complete privacy - no data ever leaves your device."
+      content="Generate ultra-secure passwords instantly with our free tool. ✓ No tracking ✓ 100% client-side ✓ Customizable options ✓ Works offline. Create your strong password now!"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
     <!--
@@ -29,6 +29,10 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://passwordgen.us/" />
     
+    <!-- Hreflang tags for international targeting -->
+    <link rel="alternate" hreflang="en" href="https://passwordgen.us/" />
+    <link rel="alternate" hreflang="x-default" href="https://passwordgen.us/" />
+    
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="Secure Password Generator - Create Strong Passwords Online" />
     <meta property="og:description" content="Generate secure, customizable passwords instantly. 100% client-side processing ensures your passwords never leave your device. Free and privacy-focused." />
@@ -43,8 +47,12 @@
     <meta name="twitter:description" content="Create strong passwords with our secure generator. Customizable options, no data tracking, 100% privacy." />
     <meta name="twitter:image" content="https://passwordgen.us/logo512.png" />
     
+    <!-- Additional Social Meta Tags -->
+    <meta property="article:author" content="Travis Harper" />
+    <meta property="og:locale" content="en_US" />
+    
     <!-- Additional SEO Meta Tags -->
-    <meta name="keywords" content="password generator, secure password, strong password, random password, password creator, online password generator, free password generator, privacy password tool" />
+    <meta name="keywords" content="password generator, secure password, strong password, random password, password creator, online password generator, free password generator, privacy password tool, password generator no ads, offline password generator, cryptographically secure password generator, password generator with custom symbols" />
     <meta name="author" content="Travis Harper" />
     <meta name="robots" content="index, follow" />
     
@@ -83,9 +91,91 @@
     }
     </script>
     
-    <!-- Preconnect for Performance -->
+    <!-- Breadcrumb Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [{
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Password Generator",
+        "item": "https://passwordgen.us/"
+      }]
+    }
+    </script>
+    
+    <!-- FAQ Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How secure are the generated passwords?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Our passwords use crypto.getRandomValues() for true cryptographic randomness, ensuring maximum security. All generation happens in your browser - passwords never leave your device."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I use custom symbols in my passwords?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! You can customize which symbols to include in your passwords. The default set includes common symbols like !@#$%^&*, but you can modify this to match your specific requirements."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What makes this password generator different?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Our generator offers unique features like sequential character removal, similar character exclusion, and no-duplicate options. It's 100% client-side, ensuring complete privacy with no data tracking."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is this password generator free to use?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, this password generator is completely free to use with no limitations. There are no ads, no premium features, and no hidden costs."
+          }
+        }
+      ]
+    }
+    </script>
+    
+    <!-- WebSite Schema with SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Secure Password Generator",
+      "url": "https://passwordgen.us/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://passwordgen.us/?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    
+    <!-- Performance Optimizations and Resource Hints -->
     <link rel="preconnect" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://www.google-analytics.com">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="%PUBLIC_URL%/static/js/bundle.js" as="script">
+    <link rel="preload" href="%PUBLIC_URL%/static/css/main.css" as="style">
+    
+    <!-- Prefetch non-critical resources -->
+    <link rel="prefetch" href="%PUBLIC_URL%/logo192.png">
+    <link rel="prefetch" href="%PUBLIC_URL%/logo512.png">
     
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-SXLM2S2QST"></script>

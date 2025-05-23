@@ -502,7 +502,7 @@ const PasswordGenerator: React.FC = () => {
       )}
       
       <main id="main-content" ref={mainContentRef} tabIndex={-1}>
-      <section style={sectionStyle} aria-labelledby="config-heading">
+      <section id="configuration" style={sectionStyle} aria-labelledby="config-heading">
         <h2 id="config-heading" style={{ margin: '0 0 12px 0', color: currentColors.textSecondary, fontSize: '16px' }}>Configuration</h2>
         
         <div style={{ display: 'grid', gap: '16px' }}>
@@ -632,7 +632,7 @@ const PasswordGenerator: React.FC = () => {
         </div>
       </section>
 
-      <section style={sectionStyle} aria-labelledby="options-heading">
+      <section id="options" style={sectionStyle} aria-labelledby="options-heading">
         <h2 id="options-heading" style={{ margin: '0 0 12px 0', color: currentColors.textSecondary, fontSize: '16px' }}>Character Options</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
           <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
@@ -798,7 +798,7 @@ const PasswordGenerator: React.FC = () => {
       </div>
 
       {passwords.length > 0 && (
-        <section style={sectionStyle} aria-labelledby="passwords-heading" aria-live="polite" aria-atomic="true">
+        <section id="generated-passwords" style={sectionStyle} aria-labelledby="passwords-heading" aria-live="polite" aria-atomic="true">
           <h2 id="passwords-heading" tabIndex={-1} style={{ margin: '0 0 12px 0', color: currentColors.textSecondary, fontSize: '16px' }}>Generated Passwords</h2>
           <div style={{ display: 'grid', gap: '8px' }} role="list">
             {passwords.map((password, index) => (
@@ -825,6 +825,7 @@ const PasswordGenerator: React.FC = () => {
                     wordBreak: 'break-all',
                   }}
                   aria-label={`Password ${index + 1}: ${password}`}
+                  lang="en"
                 >
                   {password}
                 </code>
@@ -889,7 +890,7 @@ const PasswordGenerator: React.FC = () => {
 
       </main>
       
-      <section aria-labelledby="faq-heading" style={{
+      <section id="faq" aria-labelledby="faq-heading" style={{
         marginTop: '48px',
         padding: '24px',
         backgroundColor: currentColors.cardBackground,
