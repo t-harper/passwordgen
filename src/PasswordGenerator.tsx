@@ -16,6 +16,11 @@ interface ExtendedOptions extends PasswordOptions {
   saveSettings: boolean;
 }
 
+interface PasswordTemplate {
+  name: string;
+  options: PasswordOptions;
+}
+
 const PasswordGenerator: React.FC = () => {
   const loadSettings = (): ExtendedOptions => {
     const saved = localStorage.getItem('passwordGeneratorSettings');
@@ -46,8 +51,33 @@ const PasswordGenerator: React.FC = () => {
     return !localStorage.getItem('cookieConsent');
   });
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      return savedTheme;
+    }
+    // Check if matchMedia is available (for tests and older browsers)
+    try {
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        return darkModeQuery.matches ? 'dark' : 'light';
+      }
+    } catch (e) {
+      // Fallback for environments where matchMedia might not work properly
+    }
+    return 'light';
+  });
   const mainContentRef = useRef<HTMLDivElement>(null);
   const generateButtonRef = useRef<HTMLButtonElement>(null);
+  
+  // Template state
+  const [templates, setTemplates] = useState<PasswordTemplate[]>(() => {
+    const saved = localStorage.getItem('passwordTemplates');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState('');
 
   useEffect(() => {
     if (options.saveSettings) {
@@ -57,17 +87,81 @@ const PasswordGenerator: React.FC = () => {
     }
   }, [options]);
 
+  useEffect(() => {
+    localStorage.setItem('theme', theme);
+    // Update body background color
+    document.body.style.backgroundColor = theme === 'light' ? '#f9fafb' : '#0f172a';
+    document.body.style.transition = 'background-color 0.3s ease';
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('passwordTemplates', JSON.stringify(templates));
+  }, [templates]);
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+  };
+
+  const saveTemplate = () => {
+    if (!selectedTemplate && !templateName.trim()) {
+      setShowTemplateModal(true);
+      return;
+    }
+
+    const name = selectedTemplate || templateName.trim();
+    const templateOptions: PasswordOptions = {
+      length: options.length,
+      includeNumbers: options.includeNumbers,
+      includeLowercase: options.includeLowercase,
+      includeUppercase: options.includeUppercase,
+      beginWithLetter: options.beginWithLetter,
+      excludeSimilar: options.excludeSimilar,
+      noDuplicates: options.noDuplicates,
+      removeSequential: options.removeSequential,
+      customSymbols: options.customSymbols,
+    };
+
+    setTemplates(prev => {
+      const existing = prev.findIndex(t => t.name === name);
+      if (existing >= 0) {
+        const updated = [...prev];
+        updated[existing] = { name, options: templateOptions };
+        return updated;
+      }
+      return [...prev, { name, options: templateOptions }];
+    });
+
+    // Select the saved template in the dropdown
+    setSelectedTemplate(name);
+    setTemplateName('');
+    setShowTemplateModal(false);
+  };
+
+  const loadTemplate = (templateName: string) => {
+    const template = templates.find(t => t.name === templateName);
+    if (template) {
+      setOptions(prev => ({
+        ...prev,
+        ...template.options,
+      }));
+    }
+  };
+
   const generatePassword = useCallback(() => {
+    // Ensure length is within valid range
+    const validLength = Math.max(10, Math.min(100, options.length));
+    
     const lowercase = 'abcdefghijklmnopqrstuvwxyz';
     const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const numbers = '0123456789';
-    const symbols = options.customSymbols || '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    const symbols = options.customSymbols;
     
     const similarChars = '0O1lI|`';
     const sequentialChars = ['abc', 'bcd', 'cde', 'def', 'efg', 'fgh', 'ghi', 'hij', 'ijk', 'jkl', 'klm', 'lmn', 'mno', 'nop', 'opq', 'pqr', 'qrs', 'rst', 'stu', 'tuv', 'uvw', 'vwx', 'wxy', 'xyz', '123', '234', '345', '456', '567', '678', '789'];
 
-    let charset = symbols;
+    let charset = '';
     
+    if (symbols) charset += symbols;
     if (options.includeLowercase) charset += lowercase;
     if (options.includeUppercase) charset += uppercase;
     if (options.includeNumbers) charset += numbers;
@@ -89,13 +183,16 @@ const PasswordGenerator: React.FC = () => {
       }
       
       if (letterCharset) {
-        const firstChar = letterCharset[Math.floor(Math.random() * letterCharset.length)];
+        const randomArray = new Uint32Array(1);
+        crypto.getRandomValues(randomArray);
+        const randomIndex = randomArray[0] % letterCharset.length;
+        const firstChar = letterCharset[randomIndex];
         password += firstChar;
         if (options.noDuplicates) usedChars.add(firstChar);
       }
     }
 
-    while (password.length < options.length) {
+    while (password.length < validLength) {
       let availableChars = charset;
       
       if (options.noDuplicates) {
@@ -103,7 +200,10 @@ const PasswordGenerator: React.FC = () => {
         if (!availableChars) break;
       }
 
-      const randomChar = availableChars[Math.floor(Math.random() * availableChars.length)];
+      const randomArray = new Uint32Array(1);
+      crypto.getRandomValues(randomArray);
+      const randomIndex = randomArray[0] % availableChars.length;
+      const randomChar = availableChars[randomIndex];
       
       if (options.removeSequential && password.length >= 2) {
         const lastThree = password.slice(-2) + randomChar;
@@ -135,6 +235,45 @@ const PasswordGenerator: React.FC = () => {
     }, 100);
   };
 
+  const colors = {
+    light: {
+      background: '#f9fafb',
+      cardBackground: '#ffffff',
+      text: '#1f2937',
+      textSecondary: '#374151',
+      textMuted: '#6b7280',
+      border: '#e5e7eb',
+      primary: '#3b82f6',
+      primaryHover: '#2563eb',
+      danger: '#ef4444',
+      dangerHover: '#dc2626',
+      success: '#10b981',
+      successHover: '#059669',
+      inputBg: '#ffffff',
+      inputBorder: '#e1e5e9',
+      shadowColor: 'rgba(0, 0, 0, 0.1)',
+    },
+    dark: {
+      background: '#0f172a',
+      cardBackground: '#1e293b',
+      text: '#f1f5f9',
+      textSecondary: '#e2e8f0',
+      textMuted: '#94a3b8',
+      border: '#334155',
+      primary: '#60a5fa',
+      primaryHover: '#3b82f6',
+      danger: '#f87171',
+      dangerHover: '#ef4444',
+      success: '#34d399',
+      successHover: '#10b981',
+      inputBg: '#334155',
+      inputBorder: '#475569',
+      shadowColor: 'rgba(0, 0, 0, 0.3)',
+    },
+  };
+
+  const currentColors = colors[theme];
+
   const copyToClipboard = async (password: string, index: number) => {
     try {
       await navigator.clipboard.writeText(password);
@@ -147,14 +286,16 @@ const PasswordGenerator: React.FC = () => {
 
   const inputStyle = {
     padding: '8px 12px',
-    border: '2px solid #e1e5e9',
+    border: `2px solid ${currentColors.inputBorder}`,
     borderRadius: '6px',
     fontSize: '14px',
     transition: 'border-color 0.2s ease',
+    backgroundColor: currentColors.inputBg,
+    color: currentColors.text,
   };
 
   const focusStyle = {
-    outline: '2px solid #2563eb',
+    outline: `2px solid ${currentColors.primaryHover}`,
     outlineOffset: '2px',
   };
 
@@ -163,7 +304,7 @@ const PasswordGenerator: React.FC = () => {
     alignItems: 'center',
     gap: '8px',
     fontSize: '14px',
-    color: '#374151',
+    color: currentColors.textSecondary,
     cursor: 'pointer',
   };
 
@@ -182,23 +323,24 @@ const PasswordGenerator: React.FC = () => {
   };
 
   const sectionStyle = {
-    backgroundColor: '#ffffff',
-    border: '1px solid #e5e7eb',
+    backgroundColor: currentColors.cardBackground,
+    border: `1px solid ${currentColors.border}`,
     borderRadius: '8px',
     padding: '16px',
     marginBottom: '16px',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+    boxShadow: `0 1px 3px ${currentColors.shadowColor}`,
   };
 
   const helpTextStyle = {
     fontSize: '12px',
-    color: '#6b7280',
+    color: currentColors.textMuted,
     marginTop: '4px',
     lineHeight: '1.4',
   };
 
   return (
-    <div style={{ maxWidth: '700px', margin: '0 auto', padding: '16px', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: currentColors.background, minHeight: '100vh', transition: 'background-color 0.3s ease' }}>
+      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '16px' }}>
       <a
         href="#main-content"
         style={{
@@ -216,8 +358,8 @@ const PasswordGenerator: React.FC = () => {
           e.currentTarget.style.width = 'auto';
           e.currentTarget.style.height = 'auto';
           e.currentTarget.style.padding = '8px 16px';
-          e.currentTarget.style.backgroundColor = '#1f2937';
-          e.currentTarget.style.color = 'white';
+          e.currentTarget.style.backgroundColor = currentColors.text;
+          e.currentTarget.style.color = currentColors.cardBackground;
           e.currentTarget.style.textDecoration = 'none';
           e.currentTarget.style.borderRadius = '4px';
           e.currentTarget.style.zIndex = '9999';
@@ -232,8 +374,52 @@ const PasswordGenerator: React.FC = () => {
         Skip to main content
       </a>
       <header>
-        <h1 style={{ textAlign: 'center', color: '#1f2937', marginBottom: '8px', fontSize: '2rem' }}>Secure Password Generator</h1>
-        <p style={{ textAlign: 'center', fontSize: '1rem', color: '#6b7280', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+          <button
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+            style={{
+              padding: '8px 12px',
+              backgroundColor: currentColors.cardBackground,
+              color: currentColors.text,
+              border: `1px solid ${currentColors.border}`,
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = currentColors.primary;
+              e.currentTarget.style.color = '#ffffff';
+              e.currentTarget.style.borderColor = currentColors.primary;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = currentColors.cardBackground;
+              e.currentTarget.style.color = currentColors.text;
+              e.currentTarget.style.borderColor = currentColors.border;
+            }}
+            onFocus={(e) => {
+              Object.assign(e.currentTarget.style, focusStyle);
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.outline = 'none';
+            }}
+          >
+            <span style={{ fontSize: '16px' }}>{theme === 'light' ? '🌙' : '☀️'}</span>
+          </button>
+        </div>
+        <h1 style={{ 
+          textAlign: 'center', 
+          color: currentColors.text, 
+          marginBottom: '8px', 
+          fontSize: '1.75rem',
+          lineHeight: '1.2',
+          paddingTop: '0'
+        }}>Secure Password Generator</h1>
+        <p style={{ textAlign: 'center', fontSize: '1rem', color: currentColors.textMuted, marginBottom: '24px' }}>
           Generate strong, secure passwords instantly. All processing happens in your browser - 
           your passwords never leave your device.
         </p>
@@ -248,10 +434,10 @@ const PasswordGenerator: React.FC = () => {
           bottom: '0',
           left: '0',
           right: '0',
-          backgroundColor: '#1f2937',
-          color: 'white',
+          backgroundColor: theme === 'light' ? '#1f2937' : currentColors.cardBackground,
+          color: theme === 'light' ? '#ffffff' : currentColors.text,
           padding: '16px',
-          boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.1)',
+          boxShadow: `0 -2px 10px ${currentColors.shadowColor}`,
           zIndex: 1000,
           display: 'flex',
           alignItems: 'center',
@@ -271,13 +457,13 @@ const PasswordGenerator: React.FC = () => {
               }}
               aria-label="Accept cookies"
               onFocus={(e) => {
-                e.currentTarget.style.outline = '2px solid white';
+                e.currentTarget.style.outline = theme === 'light' ? '2px solid white' : `2px solid ${currentColors.text}`;
                 e.currentTarget.style.outlineOffset = '2px';
               }}
               onBlur={(e) => e.currentTarget.style.outline = 'none'}
               style={{
-                backgroundColor: '#3b82f6',
-                color: 'white',
+                backgroundColor: currentColors.primary,
+                color: '#ffffff',
                 border: 'none',
                 padding: '8px 16px',
                 borderRadius: '4px',
@@ -295,14 +481,14 @@ const PasswordGenerator: React.FC = () => {
               }}
               aria-label="Decline cookies"
               onFocus={(e) => {
-                e.currentTarget.style.outline = '2px solid white';
+                e.currentTarget.style.outline = theme === 'light' ? '2px solid white' : `2px solid ${currentColors.text}`;
                 e.currentTarget.style.outlineOffset = '2px';
               }}
               onBlur={(e) => e.currentTarget.style.outline = 'none'}
               style={{
                 backgroundColor: 'transparent',
-                color: 'white',
-                border: '1px solid #6b7280',
+                color: theme === 'light' ? '#ffffff' : currentColors.text,
+                border: `1px solid ${currentColors.textMuted}`,
                 padding: '8px 16px',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -317,9 +503,9 @@ const PasswordGenerator: React.FC = () => {
       
       <main id="main-content" ref={mainContentRef} tabIndex={-1}>
       <section style={sectionStyle} aria-labelledby="config-heading">
-        <h2 id="config-heading" style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Configuration</h2>
+        <h2 id="config-heading" style={{ margin: '0 0 12px 0', color: currentColors.textSecondary, fontSize: '16px' }}>Configuration</h2>
         
-        <div style={{ display: 'grid', gap: '12px' }}>
+        <div style={{ display: 'grid', gap: '16px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
               <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
@@ -329,14 +515,99 @@ const PasswordGenerator: React.FC = () => {
                   min="10"
                   max="100"
                   value={options.length}
-                  onChange={(e) => setOptions(prev => ({ ...prev, length: parseInt(e.target.value) || 25 }))}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 0;
+                    setOptions(prev => ({ ...prev, length: value }));
+                  }}
                   aria-label="Password length"
                   aria-describedby="length-help"
                   style={{ ...inputStyle, width: '80px' }}
                   onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
-                  onBlur={(e) => e.currentTarget.style.outline = 'none'}
+                  onBlur={(e) => {
+                    e.currentTarget.style.outline = 'none';
+                    // Validate and clamp on blur
+                    const value = parseInt(e.currentTarget.value) || 25;
+                    const clampedValue = Math.max(10, Math.min(100, value));
+                    if (value !== clampedValue) {
+                      setOptions(prev => ({ ...prev, length: clampedValue }));
+                    }
+                  }}
                 />
                 <div id="length-help" style={helpTextStyle}>Number of characters in the generated password (10-100)</div>
+              </label>
+            </div>
+            <div>
+              <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ marginBottom: '6px', fontWeight: '500' }}>Templates</span>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select
+                    value={selectedTemplate}
+                    onChange={(e) => {
+                      setSelectedTemplate(e.target.value);
+                      if (e.target.value) {
+                        loadTemplate(e.target.value);
+                      }
+                    }}
+                    aria-label="Select template"
+                    style={{ ...inputStyle, flex: '1', minWidth: '150px' }}
+                    onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
+                    onBlur={(e) => e.currentTarget.style.outline = 'none'}
+                  >
+                    <option value="">-- Select Template --</option>
+                    {templates.map(template => (
+                      <option key={template.name} value={template.name}>{template.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={saveTemplate}
+                    style={{
+                      padding: '8px 12px',
+                    backgroundColor: currentColors.primary,
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = currentColors.primaryHover;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = currentColors.primary;
+                  }}
+                  onFocus={(e) => {
+                    Object.assign(e.currentTarget.style, focusStyle);
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.outline = 'none';
+                  }}
+                  aria-label="Save current settings as template"
+                >
+                  Save Template
+                </button>
+              </div>
+              <div style={helpTextStyle}>Save and load password generation templates</div>
+            </label>
+          </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div>
+              <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ marginBottom: '6px', fontWeight: '500' }}>Custom Symbols</span>
+                <input
+                  type="text"
+                  value={options.customSymbols}
+                  onChange={(e) => setOptions(prev => ({ ...prev, customSymbols: e.target.value }))}
+                  aria-label="Custom symbols"
+                  aria-describedby="symbols-help"
+                  style={{ ...inputStyle, width: '100%', maxWidth: '250px', fontFamily: 'Monaco, Consolas, monospace' }}
+                  placeholder="!@#$%^&*()_+-=[]{}|;:,.<>?"
+                  onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
+                  onBlur={(e) => e.currentTarget.style.outline = 'none'}
+                />
+                <div id="symbols-help" style={helpTextStyle}>Specify which special characters to include in passwords</div>
               </label>
             </div>
             <div>
@@ -358,29 +629,11 @@ const PasswordGenerator: React.FC = () => {
               </label>
             </div>
           </div>
-
-          <div>
-            <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
-              <span style={{ marginBottom: '6px', fontWeight: '500' }}>Custom Symbols</span>
-              <input
-                type="text"
-                value={options.customSymbols}
-                onChange={(e) => setOptions(prev => ({ ...prev, customSymbols: e.target.value }))}
-                aria-label="Custom symbols"
-                aria-describedby="symbols-help"
-                style={{ ...inputStyle, width: '100%', fontFamily: 'Monaco, Consolas, monospace' }}
-                placeholder="!@#$%^&*()_+-=[]{}|;:,.<>?"
-                onFocus={(e) => Object.assign(e.currentTarget.style, focusStyle)}
-                onBlur={(e) => e.currentTarget.style.outline = 'none'}
-              />
-              <div id="symbols-help" style={helpTextStyle}>Specify which special characters to include in passwords</div>
-            </label>
-          </div>
         </div>
       </section>
 
       <section style={sectionStyle} aria-labelledby="options-heading">
-        <h2 id="options-heading" style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Character Options</h2>
+        <h2 id="options-heading" style={{ margin: '0 0 12px 0', color: currentColors.textSecondary, fontSize: '16px' }}>Character Options</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
           <label style={{ ...labelStyle, flexDirection: 'column', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -516,26 +769,26 @@ const PasswordGenerator: React.FC = () => {
             }
           }}
           style={{
-            backgroundColor: '#3b82f6',
-            color: 'white',
+            backgroundColor: currentColors.primary,
+            color: '#ffffff',
             border: 'none',
             padding: '12px 24px',
             borderRadius: '8px',
             cursor: 'pointer',
             fontSize: '16px',
             fontWeight: '500',
-            boxShadow: '0 4px 6px rgba(59, 130, 246, 0.3)',
+            boxShadow: `0 4px 6px ${currentColors.shadowColor}`,
             transition: 'all 0.2s ease',
           }}
-          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+          onMouseOver={(e) => e.currentTarget.style.backgroundColor = currentColors.primaryHover}
+          onMouseOut={(e) => e.currentTarget.style.backgroundColor = currentColors.primary}
           onFocus={(e) => {
-            e.currentTarget.style.backgroundColor = '#2563eb';
-            e.currentTarget.style.outline = '2px solid #1e40af';
+            e.currentTarget.style.backgroundColor = currentColors.primaryHover;
+            e.currentTarget.style.outline = `2px solid ${currentColors.primaryHover}`;
             e.currentTarget.style.outlineOffset = '2px';
           }}
           onBlur={(e) => {
-            e.currentTarget.style.backgroundColor = '#3b82f6';
+            e.currentTarget.style.backgroundColor = currentColors.primary;
             e.currentTarget.style.outline = 'none';
           }}
         >
@@ -546,7 +799,7 @@ const PasswordGenerator: React.FC = () => {
 
       {passwords.length > 0 && (
         <section style={sectionStyle} aria-labelledby="passwords-heading" aria-live="polite" aria-atomic="true">
-          <h2 id="passwords-heading" tabIndex={-1} style={{ margin: '0 0 12px 0', color: '#374151', fontSize: '16px' }}>Generated Passwords</h2>
+          <h2 id="passwords-heading" tabIndex={-1} style={{ margin: '0 0 12px 0', color: currentColors.textSecondary, fontSize: '16px' }}>Generated Passwords</h2>
           <div style={{ display: 'grid', gap: '8px' }} role="list">
             {passwords.map((password, index) => (
               <div 
@@ -556,8 +809,8 @@ const PasswordGenerator: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   padding: '8px',
-                  backgroundColor: '#f8fafc',
-                  border: '1px solid #e2e8f0',
+                  backgroundColor: currentColors.cardBackground,
+                  border: `1px solid ${currentColors.border}`,
                   borderRadius: '6px',
                   gap: '8px',
                 }}
@@ -567,7 +820,7 @@ const PasswordGenerator: React.FC = () => {
                     flexGrow: 1, 
                     fontFamily: 'Monaco, Consolas, monospace', 
                     fontSize: '14px',
-                    color: '#1e293b',
+                    color: currentColors.text,
                     backgroundColor: 'transparent',
                     wordBreak: 'break-all',
                   }}
@@ -581,9 +834,9 @@ const PasswordGenerator: React.FC = () => {
                   aria-live="polite"
                   style={{
                     padding: '6px 12px',
-                    border: '1px solid #3b82f6',
-                    backgroundColor: 'white',
-                    color: '#3b82f6',
+                    border: `1px solid ${currentColors.primary}`,
+                    backgroundColor: currentColors.cardBackground,
+                    color: currentColors.primary,
                     borderRadius: '4px',
                     cursor: 'pointer',
                     fontSize: '12px',
@@ -592,22 +845,22 @@ const PasswordGenerator: React.FC = () => {
                     whiteSpace: 'nowrap',
                   }}
                   onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = '#3b82f6';
-                    e.currentTarget.style.color = 'white';
+                    e.currentTarget.style.backgroundColor = currentColors.primary;
+                    e.currentTarget.style.color = '#ffffff';
                   }}
                   onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = 'white';
-                    e.currentTarget.style.color = '#3b82f6';
+                    e.currentTarget.style.backgroundColor = currentColors.cardBackground;
+                    e.currentTarget.style.color = currentColors.primary;
                   }}
                   onFocus={(e) => {
-                    e.currentTarget.style.backgroundColor = '#3b82f6';
-                    e.currentTarget.style.color = 'white';
-                    e.currentTarget.style.outline = '2px solid #1e40af';
+                    e.currentTarget.style.backgroundColor = currentColors.primary;
+                    e.currentTarget.style.color = '#ffffff';
+                    e.currentTarget.style.outline = `2px solid ${currentColors.primaryHover}`;
                     e.currentTarget.style.outlineOffset = '2px';
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.backgroundColor = 'white';
-                    e.currentTarget.style.color = '#3b82f6';
+                    e.currentTarget.style.backgroundColor = currentColors.cardBackground;
+                    e.currentTarget.style.color = currentColors.primary;
                     e.currentTarget.style.outline = 'none';
                   }}
                 >
@@ -622,11 +875,11 @@ const PasswordGenerator: React.FC = () => {
       <div role="alert" aria-live="polite" style={{
         marginTop: '16px',
         padding: '12px',
-        backgroundColor: '#f0f9ff',
+        backgroundColor: theme === 'light' ? '#f0f9ff' : currentColors.cardBackground,
         borderRadius: '8px',
-        border: '1px solid #bae6fd',
+        border: `1px solid ${theme === 'light' ? '#bae6fd' : currentColors.border}`,
         fontSize: '12px',
-        color: '#0369a1',
+        color: theme === 'light' ? '#0369a1' : currentColors.primary,
         textAlign: 'center',
         lineHeight: '1.5',
       }}>
@@ -639,25 +892,26 @@ const PasswordGenerator: React.FC = () => {
       <section aria-labelledby="faq-heading" style={{
         marginTop: '48px',
         padding: '24px',
-        backgroundColor: 'white',
+        backgroundColor: currentColors.cardBackground,
         borderRadius: '8px',
-        border: '1px solid #e5e7eb',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        border: `1px solid ${currentColors.border}`,
+        boxShadow: `0 1px 3px ${currentColors.shadowColor}`
       }}>
-        <h2 id="faq-heading" style={{ fontSize: '1.25rem', marginBottom: '16px', color: '#1f2937' }}>Frequently Asked Questions</h2>
+        <h2 id="faq-heading" style={{ fontSize: '1.25rem', marginBottom: '16px', color: currentColors.text }}>Frequently Asked Questions</h2>
         
         <article style={{ marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: '#374151', fontWeight: '600' }}>How secure are the passwords generated?</h3>
-          <p style={{ color: '#6b7280', lineHeight: 1.5, fontSize: '0.875rem' }}>
+          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: currentColors.textSecondary, fontWeight: '600' }}>How secure are the passwords generated?</h3>
+          <p style={{ color: currentColors.textMuted, lineHeight: 1.5, fontSize: '0.875rem' }}>
             Our password generator creates highly secure passwords using a combination of uppercase and lowercase letters, 
-            numbers, and special characters. All generation happens locally in your browser using JavaScript's Math.random() 
-            function, ensuring your passwords are never transmitted over the internet.
+            numbers, and special characters. All generation happens locally in your browser using the Web Crypto API's 
+            crypto.getRandomValues() function for cryptographically secure randomness, ensuring your passwords are never 
+            transmitted over the internet.
           </p>
         </article>
         
         <article style={{ marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: '#374151', fontWeight: '600' }}>What makes a strong password?</h3>
-          <p style={{ color: '#6b7280', lineHeight: 1.5, fontSize: '0.875rem' }}>
+          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: currentColors.textSecondary, fontWeight: '600' }}>What makes a strong password?</h3>
+          <p style={{ color: currentColors.textMuted, lineHeight: 1.5, fontSize: '0.875rem' }}>
             A strong password should be at least 12 characters long (we recommend 25+), include a mix of character types, 
             avoid dictionary words and sequential patterns, and be unique for each account. Our generator handles all these 
             requirements automatically.
@@ -665,16 +919,16 @@ const PasswordGenerator: React.FC = () => {
         </article>
         
         <article style={{ marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: '#374151', fontWeight: '600' }}>Can I customize the password generation?</h3>
-          <p style={{ color: '#6b7280', lineHeight: 1.5, fontSize: '0.875rem' }}>
+          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: currentColors.textSecondary, fontWeight: '600' }}>Can I customize the password generation?</h3>
+          <p style={{ color: currentColors.textMuted, lineHeight: 1.5, fontSize: '0.875rem' }}>
             Yes! You can adjust the length, choose which character types to include, exclude similar-looking characters, 
             prevent duplicates, remove sequential patterns, and even define your own custom symbol set.
           </p>
         </article>
         
         <article>
-          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: '#374151', fontWeight: '600' }}>Is my data being tracked or stored?</h3>
-          <p style={{ color: '#6b7280', lineHeight: 1.5, fontSize: '0.875rem' }}>
+          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: currentColors.textSecondary, fontWeight: '600' }}>Is my data being tracked or stored?</h3>
+          <p style={{ color: currentColors.textMuted, lineHeight: 1.5, fontSize: '0.875rem' }}>
             No passwords or sensitive data are ever stored or transmitted. We use Google Analytics to understand site usage 
             patterns, but this only tracks general visitor statistics, not any password-related information. Your settings 
             are only saved locally in your browser if you explicitly choose to save them.
@@ -685,23 +939,23 @@ const PasswordGenerator: React.FC = () => {
       <footer role="contentinfo" style={{
         marginTop: '32px',
         paddingTop: '16px',
-        borderTop: '1px solid #e5e7eb',
+        borderTop: `1px solid ${currentColors.border}`,
         textAlign: 'center',
-        color: '#6b7280',
+        color: currentColors.textMuted,
         fontSize: '0.75rem'
       }}>
         <p>© 2025 Secure Password Generator by Travis Harper. All rights reserved.</p>
         <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
           <a href="https://github.com/t-harper/passwordgen" 
-             style={{ color: '#3b82f6', textDecoration: 'none' }}
+             style={{ color: currentColors.primary, textDecoration: 'none' }}
              target="_blank" 
              rel="noopener noreferrer"
              aria-label="View source code on GitHub">
             View on GitHub
           </a>
-          <span style={{ color: '#e5e7eb' }}>•</span>
+          <span style={{ color: currentColors.border }}>•</span>
           <a href="https://buymeacoffee.com/travis.harper" 
-             style={{ color: '#3b82f6', textDecoration: 'none' }}
+             style={{ color: currentColors.primary, textDecoration: 'none' }}
              target="_blank" 
              rel="noopener noreferrer"
              aria-label="Support the developer - Buy me a beer">
@@ -709,6 +963,104 @@ const PasswordGenerator: React.FC = () => {
           </a>
         </div>
       </footer>
+
+      {showTemplateModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+        }}>
+          <div style={{
+            backgroundColor: currentColors.cardBackground,
+            padding: '24px',
+            borderRadius: '8px',
+            border: `1px solid ${currentColors.border}`,
+            boxShadow: `0 4px 6px ${currentColors.shadowColor}`,
+            maxWidth: '400px',
+            width: '90%',
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '16px', color: currentColors.text }}>
+              Name Your Template
+            </h3>
+            <input
+              type="text"
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              placeholder="e.g., Strong Security, Simple Password"
+              style={{
+                ...inputStyle,
+                width: '100%',
+                marginBottom: '16px',
+              }}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && templateName.trim()) {
+                  saveTemplate();
+                }
+              }}
+            />
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowTemplateModal(false);
+                  setTemplateName('');
+                }}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: 'transparent',
+                  color: currentColors.text,
+                  border: `1px solid ${currentColors.border}`,
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = currentColors.border;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveTemplate}
+                disabled={!templateName.trim()}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: templateName.trim() ? currentColors.primary : currentColors.border,
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: templateName.trim() ? 'pointer' : 'not-allowed',
+                  fontSize: '14px',
+                }}
+                onMouseEnter={(e) => {
+                  if (templateName.trim()) {
+                    e.currentTarget.style.backgroundColor = currentColors.primaryHover;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (templateName.trim()) {
+                    e.currentTarget.style.backgroundColor = currentColors.primary;
+                  }
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      </div>
     </div>
   );
 };

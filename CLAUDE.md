@@ -8,7 +8,7 @@ This is a React TypeScript password generator application that creates secure pa
 ## Key Architecture Decisions
 
 ### Password Generation Algorithm
-- Uses `Math.random()` for character selection (sufficient for password generation)
+- Uses `crypto.getRandomValues()` for cryptographically secure random number generation
 - Character pool building: symbols + letters + numbers based on user options
 - Sequential pattern detection using predefined arrays of 3-character sequences
 - Duplicate character prevention using a `Set<string>` to track used characters
@@ -26,6 +26,7 @@ This is a React TypeScript password generator application that creates secure pa
 - Tests cover all password generation options and UI interactions
 - Uses `fireEvent.change()` instead of `userEvent.type()` to avoid input concatenation issues
 - Mocks `navigator.clipboard.writeText` for copy functionality tests
+- Uses Node's `webcrypto` implementation to provide crypto API in test environment
 
 ## Build & Development Commands
 
@@ -59,12 +60,24 @@ npm test -- --coverage --watchAll=false  # Run tests with coverage report
 
 ## UI/UX Design Patterns
 
+### Accessibility Features
+- **Skip Link**: "Skip to main content" link for keyboard navigation
+- **ARIA Labels**: All interactive elements have descriptive labels
+- **ARIA Describedby**: Form controls linked to help text
+- **ARIA Live Regions**: Dynamic content announced to screen readers
+- **Semantic HTML**: Proper use of header, main, footer, section, and article elements
+- **Keyboard Support**: Full keyboard navigation with visible focus indicators
+- **Screen Reader Support**: Visually hidden content and atomic updates
+- **Role Attributes**: Proper roles for regions, lists, alerts, and content info
+- **Focus Management**: Automatic focus to password list after generation
+
 ### Styling Approach
 - Inline styles using React style objects (no external CSS framework)
 - Consistent color palette: blues (#3b82f6), grays (#f9fafb, #374151)
 - Card-based sections with subtle shadows and borders
 - Responsive grid layouts using CSS Grid
 - Help text in muted gray (#6b7280) below form controls
+- Focus indicators with clear outlines for keyboard navigation
 
 ### Component Structure
 ```typescript
@@ -88,9 +101,9 @@ interface ExtendedOptions extends PasswordOptions {
 ## Known Limitations & Considerations
 
 ### Security
-- Uses `Math.random()` which is pseudorandom (not cryptographically secure)
-- This is acceptable for password generation in web browsers
-- For true cryptographic security, would need `crypto.getRandomValues()`
+- Uses `crypto.getRandomValues()` for cryptographically secure random number generation
+- Provides true cryptographic randomness via the Web Crypto API
+- Ensures generated passwords have maximum entropy and unpredictability
 
 ### Browser Compatibility
 - Requires modern browser with ES6+ support
@@ -161,12 +174,10 @@ interface ExtendedOptions extends PasswordOptions {
 - Password strength meter
 - Multiple password profiles/templates
 - Export passwords to password manager formats
-- Accessibility improvements (ARIA labels, keyboard navigation)
 - Internationalization (i18n) support
 - Dark mode theme toggle
 
 ### Technical Improvements
-- Implement `crypto.getRandomValues()` for stronger randomness
 - Add service worker for offline functionality
 - Implement password history (with user consent)
 - Add more sophisticated pattern detection
@@ -191,6 +202,6 @@ interface ExtendedOptions extends PasswordOptions {
 
 ---
 
-**Last Updated**: January 2025
+**Last Updated**: January 2025 (Updated with crypto.getRandomValues() and accessibility improvements)
 **Claude Version**: Claude 3.7 Sonnet
 **Project Version**: 1.0.0
