@@ -111,10 +111,11 @@ npm test -- --coverage
 
 ## 🏗️ Built With
 
-- **React 18** - UI framework
-- **TypeScript** - Type safety and better development experience
+- **React 19** - UI framework
+- **TypeScript 5** - Type safety and better development experience
+- **Vite 7** - Build tooling and dev server
+- **Vitest 3** - Test runner
 - **Testing Library** - Comprehensive testing utilities
-- **Create React App** - Build tooling and development setup
 
 ## 📝 License
 
@@ -136,7 +137,7 @@ The password generator uses a cryptographically secure approach:
 
 1. **Character Pool Creation**: Builds a pool from selected character types
 2. **Smart Filtering**: Applies exclusion rules (similar chars, duplicates, etc.)
-3. **Secure Randomization**: Uses `Math.random()` for character selection
+3. **Secure Randomization**: Uses `crypto.getRandomValues()` (Web Crypto API) for character selection
 4. **Pattern Validation**: Checks for and prevents sequential patterns
 5. **Constraint Enforcement**: Ensures passwords meet all specified criteria
 
@@ -150,6 +151,6 @@ If you encounter any issues or have questions:
 
 ## 🌟 Acknowledgments
 
-- Built with [Create React App](https://create-react-app.dev/)
+- Built with [Vite](https://vite.dev/)
 - Inspired by the need for secure, privacy-focused password generation
 - Thanks to the React and TypeScript communities for excellent tooling

@@ -547,13 +547,117 @@ describe('PasswordGenerator', () => {
     fireEvent.click(generateButton);
     
     await waitFor(() => {
-      const passwordElements = screen.getAllByRole('generic').filter(el => 
+      const passwordElements = screen.getAllByRole('generic').filter(el =>
         el.tagName === 'CODE' && el.textContent && el.textContent.length >= 10
       );
       passwordElements.forEach(el => {
         // Even though input shows 5, passwords should be at least 10 characters
         expect(el.textContent!.length).toBeGreaterThanOrEqual(10);
       });
+    });
+  });
+
+  describe('bulk generation', () => {
+    let createdAnchors: HTMLAnchorElement[];
+    let originalCreateObjectURL: typeof URL.createObjectURL;
+    let originalRevokeObjectURL: typeof URL.revokeObjectURL;
+    let capturedBlob: Blob | null;
+
+    beforeEach(() => {
+      createdAnchors = [];
+      capturedBlob = null;
+      originalCreateObjectURL = URL.createObjectURL;
+      originalRevokeObjectURL = URL.revokeObjectURL;
+
+      URL.createObjectURL = vi.fn((blob: Blob) => {
+        capturedBlob = blob;
+        return 'blob:mock-url';
+      }) as typeof URL.createObjectURL;
+      URL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL;
+
+      const realCreate = document.createElement.bind(document);
+      vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        const el = realCreate(tag) as HTMLElement;
+        if (tag === 'a') {
+          const anchor = el as HTMLAnchorElement;
+          anchor.click = vi.fn();
+          createdAnchors.push(anchor);
+        }
+        return el;
+      });
+    });
+
+    afterEach(() => {
+      URL.createObjectURL = originalCreateObjectURL;
+      URL.revokeObjectURL = originalRevokeObjectURL;
+      vi.restoreAllMocks();
+    });
+
+    const readBlobText = (blob: Blob): Promise<string> =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsText(blob);
+      });
+
+    test('renders bulk generation controls', () => {
+      render(<PasswordGenerator />);
+      expect(screen.getByRole('heading', { name: /Bulk Generation/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(/How many passwords/i)).toHaveValue(100);
+      expect(screen.getByRole('button', { name: /download.*csv/i })).toBeInTheDocument();
+    });
+
+    test('downloads CSV with the requested number of passwords using current settings', async () => {
+      render(<PasswordGenerator />);
+
+      const lengthInput = screen.getByDisplayValue('25') as HTMLInputElement;
+      fireEvent.change(lengthInput, { target: { value: '16' } });
+      fireEvent.blur(lengthInput);
+
+      const countInput = screen.getByLabelText(/How many passwords/i) as HTMLInputElement;
+      fireEvent.change(countInput, { target: { value: '7' } });
+
+      fireEvent.click(screen.getByRole('button', { name: /download.*csv/i }));
+
+      expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+      expect(capturedBlob).not.toBeNull();
+      expect(capturedBlob!.type).toMatch(/text\/csv/);
+
+      const text = await readBlobText(capturedBlob!);
+      const lines = text.trim().split('\r\n');
+      expect(lines[0]).toBe('password');
+      expect(lines).toHaveLength(8); // header + 7 passwords
+
+      lines.slice(1).forEach((line) => {
+        expect(line.startsWith('"') && line.endsWith('"')).toBe(true);
+        const value = line.slice(1, -1).replace(/""/g, '"');
+        expect(value).toHaveLength(16);
+      });
+
+      const passwords = lines.slice(1).map((l) => l.slice(1, -1).replace(/""/g, '"'));
+      expect(new Set(passwords).size).toBe(passwords.length);
+
+      const anchor = createdAnchors.find((a) => a.download.startsWith('passwords-'));
+      expect(anchor).toBeDefined();
+      expect(anchor!.download).toMatch(/^passwords-7-.*\.csv$/);
+      expect(anchor!.click).toHaveBeenCalled();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+
+      expect(screen.getByRole('status')).toHaveTextContent('Downloaded 7 passwords');
+    });
+
+    test('clamps bulk count to allowed range', async () => {
+      render(<PasswordGenerator />);
+      const countInput = screen.getByLabelText(/How many passwords/i) as HTMLInputElement;
+
+      fireEvent.change(countInput, { target: { value: '50000' } });
+      fireEvent.click(screen.getByRole('button', { name: /download.*csv/i }));
+
+      const text = await readBlobText(capturedBlob!);
+      const lines = text.trim().split('\r\n');
+      expect(lines).toHaveLength(10001); // header + 10000 max
+      expect(screen.getByRole('status')).toHaveTextContent('Downloaded 10000 passwords');
     });
   });
 });

@@ -78,6 +78,8 @@ const PasswordGenerator: React.FC = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templateName, setTemplateName] = useState('');
+  const [bulkCount, setBulkCount] = useState<number>(100);
+  const [bulkStatus, setBulkStatus] = useState<string>('');
 
   useEffect(() => {
     if (options.saveSettings) {
@@ -240,7 +242,7 @@ const PasswordGenerator: React.FC = () => {
   const generateMultiplePasswords = () => {
     const newPasswords = Array.from({ length: 5 }, () => generatePassword());
     setPasswords(newPasswords);
-    
+
     // Focus management for screen readers
     setTimeout(() => {
       const passwordsSection = document.getElementById('passwords-heading');
@@ -248,6 +250,31 @@ const PasswordGenerator: React.FC = () => {
         passwordsSection.focus();
       }
     }, 100);
+  };
+
+  const BULK_MIN = 1;
+  const BULK_MAX = 10000;
+
+  const downloadBulkCsv = () => {
+    const count = Math.max(BULK_MIN, Math.min(BULK_MAX, Math.floor(bulkCount) || 0));
+    const rows = ['password'];
+    for (let i = 0; i < count; i++) {
+      const pw = generatePassword();
+      // RFC 4180: wrap in quotes, escape internal quotes by doubling.
+      rows.push(`"${pw.replace(/"/g, '""')}"`);
+    }
+    const csv = rows.join('\r\n') + '\r\n';
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `passwords-${count}-${ts}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setBulkStatus(`Downloaded ${count} passwords`);
   };
 
   const colors = {
@@ -811,6 +838,61 @@ const PasswordGenerator: React.FC = () => {
         </button>
         <div id="generate-help" className="sr-only" style={{ position: 'absolute', left: '-9999px' }}>Click to generate 5 unique passwords based on your selected options</div>
       </div>
+
+      <section style={sectionStyle} aria-labelledby="bulk-heading">
+        <h2 id="bulk-heading" style={{ margin: '0 0 12px 0', color: currentColors.textSecondary, fontSize: '16px' }}>Bulk Generation</h2>
+        <p id="bulk-help" style={{ ...helpTextStyle, marginTop: 0 }}>
+          Generate many passwords at once using your current settings and download them as a CSV file. Passwords are generated entirely in your browser — nothing is sent to a server.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <label htmlFor="bulk-count" style={labelStyle}>How many passwords?</label>
+            <input
+              id="bulk-count"
+              type="number"
+              min={BULK_MIN}
+              max={BULK_MAX}
+              value={bulkCount}
+              onChange={(e) => setBulkCount(parseInt(e.target.value, 10) || 0)}
+              aria-describedby="bulk-help"
+              style={{ ...inputStyle, width: '140px' }}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={downloadBulkCsv}
+            aria-label={`Generate ${bulkCount} passwords and download as CSV`}
+            style={{
+              backgroundColor: currentColors.primary,
+              color: '#ffffff',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '15px',
+              fontWeight: '500',
+              boxShadow: `0 4px 6px ${currentColors.shadowColor}`,
+              transition: 'all 0.2s ease',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = currentColors.primaryHover}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = currentColors.primary}
+            onFocus={(e) => {
+              e.currentTarget.style.backgroundColor = currentColors.primaryHover;
+              e.currentTarget.style.outline = `2px solid ${currentColors.primaryHover}`;
+              e.currentTarget.style.outlineOffset = '2px';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.backgroundColor = currentColors.primary;
+              e.currentTarget.style.outline = 'none';
+            }}
+          >
+            Download CSV
+          </button>
+        </div>
+        <div role="status" aria-live="polite" style={{ ...helpTextStyle, marginTop: '8px', minHeight: '1.2em' }}>
+          {bulkStatus}
+        </div>
+      </section>
 
       {passwords.length > 0 && (
         <section id="generated-passwords" style={sectionStyle} aria-labelledby="passwords-heading" aria-live="polite" aria-atomic="true">
