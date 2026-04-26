@@ -2,37 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
       content="Generate ultra-secure passwords instantly with our free tool. ✓ No tracking ✓ 100% client-side ✓ Customizable options ✓ Works offline. Create your strong password now!"
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
     <title>Secure Password Generator - Free Online Strong Password Creator</title>
-    
+
     <!-- Canonical URL -->
     <link rel="canonical" href="https://passwordgen.us/" />
-    
+
     <!-- Hreflang tags for international targeting -->
     <link rel="alternate" hreflang="en" href="https://passwordgen.us/" />
     <link rel="alternate" hreflang="x-default" href="https://passwordgen.us/" />
-    
+
     <!-- Open Graph Meta Tags -->
     <meta property="og:title" content="Secure Password Generator - Create Strong Passwords Online" />
     <meta property="og:description" content="Generate secure, customizable passwords instantly. 100% client-side processing ensures your passwords never leave your device. Free and privacy-focused." />
@@ -40,22 +27,22 @@
     <meta property="og:url" content="https://passwordgen.us/" />
     <meta property="og:image" content="https://passwordgen.us/logo512.png" />
     <meta property="og:site_name" content="Secure Password Generator" />
-    
+
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Secure Password Generator - Free & Private" />
     <meta name="twitter:description" content="Create strong passwords with our secure generator. Customizable options, no data tracking, 100% privacy." />
     <meta name="twitter:image" content="https://passwordgen.us/logo512.png" />
-    
+
     <!-- Additional Social Meta Tags -->
     <meta property="article:author" content="Travis Harper" />
     <meta property="og:locale" content="en_US" />
-    
+
     <!-- Additional SEO Meta Tags -->
     <meta name="keywords" content="password generator, secure password, strong password, random password, password creator, online password generator, free password generator, privacy password tool, password generator no ads, offline password generator, cryptographically secure password generator, password generator with custom symbols" />
     <meta name="author" content="Travis Harper" />
     <meta name="robots" content="index, follow" />
-    
+
     <!-- Structured Data -->
     <script type="application/ld+json">
     {
@@ -90,7 +77,7 @@
       }
     }
     </script>
-    
+
     <!-- Breadcrumb Schema -->
     <script type="application/ld+json">
     {
@@ -104,7 +91,7 @@
       }]
     }
     </script>
-    
+
     <!-- FAQ Schema -->
     <script type="application/ld+json">
     {
@@ -146,7 +133,7 @@
       ]
     }
     </script>
-    
+
     <!-- WebSite Schema with SearchAction -->
     <script type="application/ld+json">
     {
@@ -164,19 +151,15 @@
       }
     }
     </script>
-    
+
     <!-- Performance Optimizations and Resource Hints -->
     <link rel="preconnect" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://www.google-analytics.com">
-    
-    <!-- Preload critical resources -->
-    <link rel="preload" href="%PUBLIC_URL%/static/js/bundle.js" as="script">
-    <link rel="preload" href="%PUBLIC_URL%/static/css/main.css" as="style">
-    
+
     <!-- Prefetch non-critical resources -->
-    <link rel="prefetch" href="%PUBLIC_URL%/logo192.png">
-    <link rel="prefetch" href="%PUBLIC_URL%/logo512.png">
-    
+    <link rel="prefetch" href="/logo192.png">
+    <link rel="prefetch" href="/logo512.png">
+
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-SXLM2S2QST"></script>
     <script>
@@ -190,15 +173,6 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

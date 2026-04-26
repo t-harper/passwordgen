@@ -6,14 +6,14 @@ import PasswordGenerator from './PasswordGenerator';
 // Mock clipboard API
 Object.assign(navigator, {
   clipboard: {
-    writeText: jest.fn(() => Promise.resolve()),
+    writeText: vi.fn(() => Promise.resolve()),
   },
 });
 
 describe('PasswordGenerator', () => {
   beforeEach(() => {
     localStorage.clear();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders password generator with default settings', () => {
@@ -442,10 +442,10 @@ describe('PasswordGenerator', () => {
   test('clipboard error handling works', async () => {
     // Mock clipboard to fail
     const originalWriteText = navigator.clipboard.writeText;
-    navigator.clipboard.writeText = jest.fn(() => Promise.reject(new Error('Clipboard error')));
+    navigator.clipboard.writeText = vi.fn(() => Promise.reject(new Error('Clipboard error')));
     
     // Spy on console.error
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     
     render(<PasswordGenerator />);
     
