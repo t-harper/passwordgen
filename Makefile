@@ -33,4 +33,4 @@ dev:
 
 # Run tests in container
 test:
-	docker run --rm -v $(PWD):/app -w /app node:18-alpine sh -c "npm ci && npm test -- --watchAll=false"
+	docker run --rm -v $(PWD):/app -w /app node:24-alpine sh -c "npm ci && npm test"
