@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PasswordOptions, generatePassword } from './lib/passwordAlgorithm';
 import FAQFooter from './components/FAQFooter';
+import useTheme from './hooks/useTheme';
 
 interface ExtendedOptions extends PasswordOptions {
   saveSettings: boolean;
@@ -38,22 +39,7 @@ const PasswordGenerator: React.FC = () => {
   const [options, setOptions] = useState<ExtendedOptions>(loadSettings());
   const [passwords, setPasswords] = useState<string[]>([]);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light' || savedTheme === 'dark') {
-      return savedTheme;
-    }
-    // Check if matchMedia is available (for tests and older browsers)
-    try {
-      if (typeof window !== 'undefined' && window.matchMedia) {
-        const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        return darkModeQuery.matches ? 'dark' : 'light';
-      }
-    } catch (e) {
-      // Fallback for environments where matchMedia might not work properly
-    }
-    return 'light';
-  });
+  const { theme, toggleTheme, currentColors } = useTheme();
   const mainContentRef = useRef<HTMLDivElement>(null);
   const generateButtonRef = useRef<HTMLButtonElement>(null);
   
@@ -77,19 +63,8 @@ const PasswordGenerator: React.FC = () => {
   }, [options]);
 
   useEffect(() => {
-    localStorage.setItem('theme', theme);
-    // Update body background color
-    document.body.style.backgroundColor = theme === 'light' ? '#f9fafb' : '#0f172a';
-    document.body.style.transition = 'background-color 0.3s ease';
-  }, [theme]);
-
-  useEffect(() => {
     localStorage.setItem('passwordTemplates', JSON.stringify(templates));
   }, [templates]);
-
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
 
   const saveTemplate = () => {
     if (!selectedTemplate && !templateName.trim()) {
@@ -173,45 +148,6 @@ const PasswordGenerator: React.FC = () => {
     URL.revokeObjectURL(url);
     setBulkStatus(`Downloaded ${count} passwords`);
   };
-
-  const colors = {
-    light: {
-      background: '#f9fafb',
-      cardBackground: '#ffffff',
-      text: '#1f2937',
-      textSecondary: '#374151',
-      textMuted: '#6b7280',
-      border: '#e5e7eb',
-      primary: '#3b82f6',
-      primaryHover: '#2563eb',
-      danger: '#ef4444',
-      dangerHover: '#dc2626',
-      success: '#10b981',
-      successHover: '#059669',
-      inputBg: '#ffffff',
-      inputBorder: '#e1e5e9',
-      shadowColor: 'rgba(0, 0, 0, 0.1)',
-    },
-    dark: {
-      background: '#0f172a',
-      cardBackground: '#1e293b',
-      text: '#f1f5f9',
-      textSecondary: '#e2e8f0',
-      textMuted: '#94a3b8',
-      border: '#334155',
-      primary: '#60a5fa',
-      primaryHover: '#3b82f6',
-      danger: '#f87171',
-      dangerHover: '#ef4444',
-      success: '#34d399',
-      successHover: '#10b981',
-      inputBg: '#334155',
-      inputBorder: '#475569',
-      shadowColor: 'rgba(0, 0, 0, 0.3)',
-    },
-  };
-
-  const currentColors = colors[theme];
 
   const copyToClipboard = async (password: string, index: number) => {
     try {
