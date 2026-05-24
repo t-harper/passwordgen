@@ -1,16 +1,7 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-
-interface PasswordOptions {
-  length: number;
-  includeNumbers: boolean;
-  includeLowercase: boolean;
-  includeUppercase: boolean;
-  beginWithLetter: boolean;
-  excludeSimilar: boolean;
-  noDuplicates: boolean;
-  removeSequential: boolean;
-  customSymbols: string;
-}
+import React, { useState, useEffect, useRef } from 'react';
+import { PasswordOptions, generatePassword } from './lib/passwordAlgorithm';
+import FAQFooter from './components/FAQFooter';
+import useTheme from './hooks/useTheme';
 
 interface ExtendedOptions extends PasswordOptions {
   saveSettings: boolean;
@@ -47,26 +38,8 @@ const PasswordGenerator: React.FC = () => {
 
   const [options, setOptions] = useState<ExtendedOptions>(loadSettings());
   const [passwords, setPasswords] = useState<string[]>([]);
-  const [showCookieBanner, setShowCookieBanner] = useState<boolean>(() => {
-    return !localStorage.getItem('cookieConsent');
-  });
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light' || savedTheme === 'dark') {
-      return savedTheme;
-    }
-    // Check if matchMedia is available (for tests and older browsers)
-    try {
-      if (typeof window !== 'undefined' && window.matchMedia) {
-        const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        return darkModeQuery.matches ? 'dark' : 'light';
-      }
-    } catch (e) {
-      // Fallback for environments where matchMedia might not work properly
-    }
-    return 'light';
-  });
+  const { theme, toggleTheme, currentColors } = useTheme();
   const mainContentRef = useRef<HTMLDivElement>(null);
   const generateButtonRef = useRef<HTMLButtonElement>(null);
   
@@ -90,19 +63,8 @@ const PasswordGenerator: React.FC = () => {
   }, [options]);
 
   useEffect(() => {
-    localStorage.setItem('theme', theme);
-    // Update body background color
-    document.body.style.backgroundColor = theme === 'light' ? '#f9fafb' : '#0f172a';
-    document.body.style.transition = 'background-color 0.3s ease';
-  }, [theme]);
-
-  useEffect(() => {
     localStorage.setItem('passwordTemplates', JSON.stringify(templates));
   }, [templates]);
-
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
 
   const saveTemplate = () => {
     if (!selectedTemplate && !templateName.trim()) {
@@ -149,98 +111,8 @@ const PasswordGenerator: React.FC = () => {
     }
   };
 
-  const generatePassword = useCallback(() => {
-    // Ensure length is within valid range
-    const validLength = Math.max(10, Math.min(100, options.length));
-    
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const numbers = '0123456789';
-    const symbols = options.customSymbols;
-    
-    const similarChars = '0O1lI|`';
-    const sequentialChars = ['abc', 'bcd', 'cde', 'def', 'efg', 'fgh', 'ghi', 'hij', 'ijk', 'jkl', 'klm', 'lmn', 'mno', 'nop', 'opq', 'pqr', 'qrs', 'rst', 'stu', 'tuv', 'uvw', 'vwx', 'wxy', 'xyz', '123', '234', '345', '456', '567', '678', '789'];
-
-    let charset = '';
-    
-    if (symbols) charset += symbols;
-    if (options.includeLowercase) charset += lowercase;
-    if (options.includeUppercase) charset += uppercase;
-    if (options.includeNumbers) charset += numbers;
-
-    if (options.excludeSimilar) {
-      charset = charset.split('').filter(char => !similarChars.includes(char)).join('');
-    }
-
-    // Remove duplicates from charset to get unique characters
-    const uniqueChars = Array.from(new Set(charset.split('')));
-    const uniqueCharset = uniqueChars.join('');
-
-    // If noDuplicates is enabled and password length exceeds available unique characters,
-    // cap the password length to the number of unique characters available
-    const maxPossibleLength = options.noDuplicates ? uniqueChars.length : validLength;
-    const effectiveLength = Math.min(validLength, maxPossibleLength);
-
-    let password = '';
-    const usedChars = new Set<string>();
-
-    if (options.beginWithLetter && (options.includeLowercase || options.includeUppercase)) {
-      let letterCharset = '';
-      if (options.includeLowercase) letterCharset += lowercase;
-      if (options.includeUppercase) letterCharset += uppercase;
-      
-      if (options.excludeSimilar) {
-        letterCharset = letterCharset.split('').filter(char => !similarChars.includes(char)).join('');
-      }
-      
-      if (letterCharset) {
-        const randomArray = new Uint32Array(1);
-        crypto.getRandomValues(randomArray);
-        const randomIndex = randomArray[0] % letterCharset.length;
-        const firstChar = letterCharset[randomIndex];
-        password += firstChar;
-        if (options.noDuplicates) usedChars.add(firstChar);
-      }
-    }
-
-    // Add safety counter to prevent infinite loops
-    let attempts = 0;
-    const maxAttempts = effectiveLength * 50; // Allow reasonable number of attempts for sequential checking
-
-    while (password.length < effectiveLength && attempts < maxAttempts) {
-      attempts++;
-      
-      let availableChars = uniqueCharset;
-      
-      if (options.noDuplicates) {
-        availableChars = uniqueCharset.split('').filter(char => !usedChars.has(char)).join('');
-        if (!availableChars) break; // No more unique characters available
-      }
-
-      const randomArray = new Uint32Array(1);
-      crypto.getRandomValues(randomArray);
-      const randomIndex = randomArray[0] % availableChars.length;
-      const randomChar = availableChars[randomIndex];
-      
-      if (options.removeSequential && password.length >= 2) {
-        const lastThree = password.slice(-2) + randomChar;
-        const isSequential = sequentialChars.some(seq => 
-          lastThree.toLowerCase() === seq || 
-          lastThree.toLowerCase() === seq.split('').reverse().join('')
-        );
-        
-        if (isSequential) continue;
-      }
-
-      password += randomChar;
-      if (options.noDuplicates) usedChars.add(randomChar);
-    }
-
-    return password;
-  }, [options]);
-
   const generateMultiplePasswords = () => {
-    const newPasswords = Array.from({ length: 5 }, () => generatePassword());
+    const newPasswords = Array.from({ length: 5 }, () => generatePassword(options));
     setPasswords(newPasswords);
 
     // Focus management for screen readers
@@ -259,7 +131,7 @@ const PasswordGenerator: React.FC = () => {
     const count = Math.max(BULK_MIN, Math.min(BULK_MAX, Math.floor(bulkCount) || 0));
     const rows = ['password'];
     for (let i = 0; i < count; i++) {
-      const pw = generatePassword();
+      const pw = generatePassword(options);
       // RFC 4180: wrap in quotes, escape internal quotes by doubling.
       rows.push(`"${pw.replace(/"/g, '""')}"`);
     }
@@ -276,45 +148,6 @@ const PasswordGenerator: React.FC = () => {
     URL.revokeObjectURL(url);
     setBulkStatus(`Downloaded ${count} passwords`);
   };
-
-  const colors = {
-    light: {
-      background: '#f9fafb',
-      cardBackground: '#ffffff',
-      text: '#1f2937',
-      textSecondary: '#374151',
-      textMuted: '#6b7280',
-      border: '#e5e7eb',
-      primary: '#3b82f6',
-      primaryHover: '#2563eb',
-      danger: '#ef4444',
-      dangerHover: '#dc2626',
-      success: '#10b981',
-      successHover: '#059669',
-      inputBg: '#ffffff',
-      inputBorder: '#e1e5e9',
-      shadowColor: 'rgba(0, 0, 0, 0.1)',
-    },
-    dark: {
-      background: '#0f172a',
-      cardBackground: '#1e293b',
-      text: '#f1f5f9',
-      textSecondary: '#e2e8f0',
-      textMuted: '#94a3b8',
-      border: '#334155',
-      primary: '#60a5fa',
-      primaryHover: '#3b82f6',
-      danger: '#f87171',
-      dangerHover: '#ef4444',
-      success: '#34d399',
-      successHover: '#10b981',
-      inputBg: '#334155',
-      inputBorder: '#475569',
-      shadowColor: 'rgba(0, 0, 0, 0.3)',
-    },
-  };
-
-  const currentColors = colors[theme];
 
   const copyToClipboard = async (password: string, index: number) => {
     try {
@@ -466,83 +299,7 @@ const PasswordGenerator: React.FC = () => {
           your passwords never leave your device.
         </p>
       </header>
-      {showCookieBanner && (
-        <div 
-          role="region"
-          aria-label="Cookie consent banner"
-          aria-live="polite"
-          style={{
-          position: 'fixed',
-          bottom: '0',
-          left: '0',
-          right: '0',
-          backgroundColor: theme === 'light' ? '#1f2937' : currentColors.cardBackground,
-          color: theme === 'light' ? '#ffffff' : currentColors.text,
-          padding: '16px',
-          boxShadow: `0 -2px 10px ${currentColors.shadowColor}`,
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}>
-          <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
-            🍪 This website uses localStorage to save your preferences when you enable "Save Settings" 
-            and Google Analytics to understand site usage. No passwords or sensitive data are ever tracked.
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => {
-                localStorage.setItem('cookieConsent', 'accepted');
-                setShowCookieBanner(false);
-              }}
-              aria-label="Accept cookies"
-              onFocus={(e) => {
-                e.currentTarget.style.outline = theme === 'light' ? '2px solid white' : `2px solid ${currentColors.text}`;
-                e.currentTarget.style.outlineOffset = '2px';
-              }}
-              onBlur={(e) => e.currentTarget.style.outline = 'none'}
-              style={{
-                backgroundColor: currentColors.primary,
-                color: '#ffffff',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-              }}
-            >
-              Accept
-            </button>
-            <button
-              onClick={() => {
-                localStorage.setItem('cookieConsent', 'declined');
-                setShowCookieBanner(false);
-              }}
-              aria-label="Decline cookies"
-              onFocus={(e) => {
-                e.currentTarget.style.outline = theme === 'light' ? '2px solid white' : `2px solid ${currentColors.text}`;
-                e.currentTarget.style.outlineOffset = '2px';
-              }}
-              onBlur={(e) => e.currentTarget.style.outline = 'none'}
-              style={{
-                backgroundColor: 'transparent',
-                color: theme === 'light' ? '#ffffff' : currentColors.text,
-                border: `1px solid ${currentColors.textMuted}`,
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px',
-              }}
-            >
-              Decline
-            </button>
-          </div>
-        </div>
-      )}
-      
+
       <main id="main-content" ref={mainContentRef} tabIndex={-1}>
       <section id="configuration" style={sectionStyle} aria-labelledby="config-heading">
         <h2 id="config-heading" style={{ margin: '0 0 12px 0', color: currentColors.textSecondary, fontSize: '16px' }}>Configuration</h2>
@@ -987,80 +744,7 @@ const PasswordGenerator: React.FC = () => {
 
       </main>
       
-      <section id="faq" aria-labelledby="faq-heading" style={{
-        marginTop: '48px',
-        padding: '24px',
-        backgroundColor: currentColors.cardBackground,
-        borderRadius: '8px',
-        border: `1px solid ${currentColors.border}`,
-        boxShadow: `0 1px 3px ${currentColors.shadowColor}`
-      }}>
-        <h2 id="faq-heading" style={{ fontSize: '1.25rem', marginBottom: '16px', color: currentColors.text }}>Frequently Asked Questions</h2>
-        
-        <article style={{ marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: currentColors.textSecondary, fontWeight: '600' }}>How secure are the passwords generated?</h3>
-          <p style={{ color: currentColors.textMuted, lineHeight: 1.5, fontSize: '0.875rem' }}>
-            Our password generator creates highly secure passwords using a combination of uppercase and lowercase letters, 
-            numbers, and special characters. All generation happens locally in your browser using the Web Crypto API's 
-            crypto.getRandomValues() function for cryptographically secure randomness, ensuring your passwords are never 
-            transmitted over the internet.
-          </p>
-        </article>
-        
-        <article style={{ marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: currentColors.textSecondary, fontWeight: '600' }}>What makes a strong password?</h3>
-          <p style={{ color: currentColors.textMuted, lineHeight: 1.5, fontSize: '0.875rem' }}>
-            A strong password should be at least 12 characters long (we recommend 25+), include a mix of character types, 
-            avoid dictionary words and sequential patterns, and be unique for each account. Our generator handles all these 
-            requirements automatically.
-          </p>
-        </article>
-        
-        <article style={{ marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: currentColors.textSecondary, fontWeight: '600' }}>Can I customize the password generation?</h3>
-          <p style={{ color: currentColors.textMuted, lineHeight: 1.5, fontSize: '0.875rem' }}>
-            Yes! You can adjust the length, choose which character types to include, exclude similar-looking characters, 
-            prevent duplicates, remove sequential patterns, and even define your own custom symbol set.
-          </p>
-        </article>
-        
-        <article>
-          <h3 style={{ fontSize: '1rem', marginBottom: '6px', color: currentColors.textSecondary, fontWeight: '600' }}>Is my data being tracked or stored?</h3>
-          <p style={{ color: currentColors.textMuted, lineHeight: 1.5, fontSize: '0.875rem' }}>
-            No passwords or sensitive data are ever stored or transmitted. We use Google Analytics to understand site usage 
-            patterns, but this only tracks general visitor statistics, not any password-related information. Your settings 
-            are only saved locally in your browser if you explicitly choose to save them.
-          </p>
-        </article>
-      </section>
-      
-      <footer role="contentinfo" style={{
-        marginTop: '32px',
-        paddingTop: '16px',
-        borderTop: `1px solid ${currentColors.border}`,
-        textAlign: 'center',
-        color: currentColors.textMuted,
-        fontSize: '0.75rem'
-      }}>
-        <p>© 2025 Secure Password Generator by Travis Harper. All rights reserved.</p>
-        <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <a href="https://github.com/t-harper/passwordgen" 
-             style={{ color: currentColors.primary, textDecoration: 'none' }}
-             target="_blank" 
-             rel="noopener noreferrer"
-             aria-label="View source code on GitHub">
-            View on GitHub
-          </a>
-          <span style={{ color: currentColors.border }}>•</span>
-          <a href="https://buymeacoffee.com/travis.harper" 
-             style={{ color: currentColors.primary, textDecoration: 'none' }}
-             target="_blank" 
-             rel="noopener noreferrer"
-             aria-label="Support the developer - Buy me a beer">
-            🍺 Buy me a beer
-          </a>
-        </div>
-      </footer>
+      <FAQFooter currentColors={currentColors} />
 
       {showTemplateModal && (
         <div style={{
