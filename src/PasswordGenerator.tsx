@@ -47,9 +47,6 @@ const PasswordGenerator: React.FC = () => {
 
   const [options, setOptions] = useState<ExtendedOptions>(loadSettings());
   const [passwords, setPasswords] = useState<string[]>([]);
-  const [showCookieBanner, setShowCookieBanner] = useState<boolean>(() => {
-    return !localStorage.getItem('cookieConsent');
-  });
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -466,83 +463,7 @@ const PasswordGenerator: React.FC = () => {
           your passwords never leave your device.
         </p>
       </header>
-      {showCookieBanner && (
-        <div 
-          role="region"
-          aria-label="Cookie consent banner"
-          aria-live="polite"
-          style={{
-          position: 'fixed',
-          bottom: '0',
-          left: '0',
-          right: '0',
-          backgroundColor: theme === 'light' ? '#1f2937' : currentColors.cardBackground,
-          color: theme === 'light' ? '#ffffff' : currentColors.text,
-          padding: '16px',
-          boxShadow: `0 -2px 10px ${currentColors.shadowColor}`,
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}>
-          <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
-            🍪 This website uses localStorage to save your preferences when you enable "Save Settings" 
-            and Google Analytics to understand site usage. No passwords or sensitive data are ever tracked.
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => {
-                localStorage.setItem('cookieConsent', 'accepted');
-                setShowCookieBanner(false);
-              }}
-              aria-label="Accept cookies"
-              onFocus={(e) => {
-                e.currentTarget.style.outline = theme === 'light' ? '2px solid white' : `2px solid ${currentColors.text}`;
-                e.currentTarget.style.outlineOffset = '2px';
-              }}
-              onBlur={(e) => e.currentTarget.style.outline = 'none'}
-              style={{
-                backgroundColor: currentColors.primary,
-                color: '#ffffff',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-              }}
-            >
-              Accept
-            </button>
-            <button
-              onClick={() => {
-                localStorage.setItem('cookieConsent', 'declined');
-                setShowCookieBanner(false);
-              }}
-              aria-label="Decline cookies"
-              onFocus={(e) => {
-                e.currentTarget.style.outline = theme === 'light' ? '2px solid white' : `2px solid ${currentColors.text}`;
-                e.currentTarget.style.outlineOffset = '2px';
-              }}
-              onBlur={(e) => e.currentTarget.style.outline = 'none'}
-              style={{
-                backgroundColor: 'transparent',
-                color: theme === 'light' ? '#ffffff' : currentColors.text,
-                border: `1px solid ${currentColors.textMuted}`,
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px',
-              }}
-            >
-              Decline
-            </button>
-          </div>
-        </div>
-      )}
-      
+
       <main id="main-content" ref={mainContentRef} tabIndex={-1}>
       <section id="configuration" style={sectionStyle} aria-labelledby="config-heading">
         <h2 id="config-heading" style={{ margin: '0 0 12px 0', color: currentColors.textSecondary, fontSize: '16px' }}>Configuration</h2>
