@@ -1,7 +1,8 @@
 import React from 'react';
+import type { ThemeColors } from '../hooks/useTheme';
 
 interface FAQFooterProps {
-  currentColors: Record<string, string>;
+  currentColors: ThemeColors;
 }
 
 const FAQFooter: React.FC<FAQFooterProps> = ({ currentColors }) => {
