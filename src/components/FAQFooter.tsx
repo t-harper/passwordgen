@@ -62,7 +62,7 @@ const FAQFooter: React.FC<FAQFooterProps> = ({ currentColors }) => {
         color: currentColors.textMuted,
         fontSize: '0.75rem'
       }}>
-        <p>© 2025 Secure Password Generator by Travis Harper. All rights reserved.</p>
+        <p>© 2026 Secure Password Generator by Travis Harper. All rights reserved.</p>
         <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
           <a href="https://github.com/t-harper/passwordgen"
              style={{ color: currentColors.primary, textDecoration: 'none' }}
