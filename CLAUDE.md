@@ -269,4 +269,4 @@ interface ExtendedOptions extends PasswordOptions {
 
 **Last Updated**: January 2025 (Updated with dark mode, templates, SEO optimizations, and completed enhancements tracking)
 **Claude Version**: Claude 3.7 Sonnet / Opus 4
-**Project Version**: 1.1.0
+**Project Version**: 1.2.0
